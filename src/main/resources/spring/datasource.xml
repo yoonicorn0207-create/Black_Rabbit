@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:mybatis-spring="http://mybatis.org/schema/mybatis-spring"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.3.xsd
+		http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring-1.2.xsd">
+
+    <!-- properties 파일 읽기 -->
+    <context:property-placeholder
+            location="classpath:config/datasource.properties"/>
+
+    <!-- DataSource 설정 (DB 연결 정보) -->
+    <bean id="dataSource"
+          class="org.springframework.jdbc.datasource.SimpleDriverDataSource">
+        <property name="driverClass" value="${db.driver.Class}"/>
+        <property name="url" value="${db.url}"/>
+        <property name="username" value="${db.username}"/>
+        <property name="password" value="${db.password}"/>
+    </bean>
+
+    <!-- 1. MyBatis의 핵심 객체: SqlSessionFactory 설정[접속관련] -->
+    <bean id="sqlSessionFactory"
+          class="org.mybatis.spring.SqlSessionFactoryBean">
+
+        <!-- 위에서 이미 사용 중인 dataSource를 연결해줍니다 -->
+        <property name="dataSource" ref="dataSource"/>
+        <!-- 이 파일이 있으면 MyBatis의 세밀한 동작을 제어할 수 있습니다 -->
+        <property name="configLocation"
+                  value="classpath:config/SqlMapConfig.xml"/>
+
+        <!-- SQL 쿼리가 들어있는 XML 파일들의 위치를 지정합니다 -->
+        <property name="mapperLocations" value="classpath*:mappers/**/*.xml"/>
+
+        <!-- VO 클래스의 경로를 줄여서 쓸 수 있도록 별칭 설정 (선택) -->
+        <!-- <property name="typeAliasesPackage" value="com.blackrabbit.dto"
+            /> -->
+    </bean>
+
+
+    <!-- MyBatis -->
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="basePackage" value="com.blackrabbit.dao"/>
+        <property name="sqlSessionFactoryBeanName"
+                  value="sqlSessionFactory"/>
+    </bean>
+
+
+    <!-- 2. SQL 실행을 담당하는 템플릿: SqlSessionTemplate 설정 -->
+    <bean id="sqlSession"
+          class="org.mybatis.spring.SqlSessionTemplate">
+        <constructor-arg ref="sqlSessionFactory"/>
+    </bean>
+</beans>

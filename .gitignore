@@ -1,0 +1,35 @@
+# Gradle
+.gradle/
+build/
+!gradle-wrapper.jar
+
+# Maven
+target/
+*.jar
+*.war
+*.ear
+
+# IDE (IntelliJ, Eclipse, VSCode)
+.idea/
+*.iws
+*.iml
+*.ipr
+.settings/
+.project
+.classpath
+.factorypath
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Log
+*.log
+
+# Secret/Config
+.env
+src/main/resources/application-*.properties
+src/main/resources/application-*.yml
+!src/main/resources/application.properties
+!src/main/resources/application.yml
