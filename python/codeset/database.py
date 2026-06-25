@@ -46,6 +46,66 @@ def getStockMstList():
         connection.close()
 
 
+
+
+
+def insert_stock_minute1(ticker, out1_data):
+    """ output1 (당일 요약) 데이터를 minute1 테이블에 적재/업데이트 """
+    connection = get_db_connection()
+    try:
+        if not out1_data:
+            return
+        with connection.cursor() as cursor:
+            sql = """
+                INSERT INTO HC_stock_minute1 (ticker, stck_bsop_date, stck_prpr, prdy_vrss, prdy_ctrt, acml_vol, acml_tr_pbmn)
+                VALUES (%s, STR_TO_DATE(%s, '%%Y%%m%%d'), %s, %s, %s, %s, %s)
+                ON DUPLICATE KEY UPDATE
+                    stck_prpr = VALUES(stck_prpr), prdy_vrss = VALUES(prdy_vrss),
+                    prdy_ctrt = VALUES(prdy_ctrt), acml_vol = VALUES(acml_vol), acml_tr_pbmn = VALUES(acml_tr_pbmn);
+            """
+            cursor.execute(sql, (
+                ticker, out1_data.get('stck_bsop_date'), out1_data.get('stck_prpr'),
+                out1_data.get('prdy_vrss'), out1_data.get('prdy_ctrt'),
+                out1_data.get('acml_vol'), out1_data.get('acml_tr_pbmn')
+            ))
+        connection.commit()
+
+    except Exception as e:
+        connection.rollback()
+        print(f"DB 적재 중 에러 발생: {e}")
+    finally:
+        connection.close()
+
+
+
+def insert_stock_minute2_bulk(minute2_tuples):
+    """ 한 종목의 수집된 하루치 분봉 리스트(튜플 배열)를 묶어서 한번에 쏘기(Bulk Insert) """
+    connection = get_db_connection()
+    try:
+        if not minute2_tuples:
+            return
+        with connection.cursor() as cursor:
+            sql = """
+                INSERT INTO HC_stock_minute2 (ticker, stck_bsop_date, stck_cntg_hour, stck_oprc, stck_hgpr, stck_lwpr, stck_prpr, cntg_vol, acml_tr_pbmn)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ON DUPLICATE KEY UPDATE
+                    stck_oprc = VALUES(stck_oprc), stck_hgpr = VALUES(stck_hgpr),
+                    stck_lwpr = VALUES(stck_lwpr), stck_prpr = VALUES(stck_prpr),
+                    cntg_vol = VALUES(cntg_vol), acml_tr_pbmn = VALUES(acml_tr_pbmn);
+            """
+            cursor.executemany(sql, minute2_tuples)
+        connection.commit()
+
+    except Exception as e:
+        connection.rollback()
+        print(f"DB 적재 중 에러 발생: {e}")
+    finally:
+        connection.close()
+
+
+
+
+
 def createTalbe(sql):
     """
     테이블 생성 공통 함수
