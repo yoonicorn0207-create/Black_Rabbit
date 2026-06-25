@@ -20,6 +20,32 @@ def get_db_connection():
         cursorclass=pymysql.cursors.DictCursor
     )
 
+def getStockMstList():
+    """
+    종목 마스터 테이블에서 현재 상장되어 있는 종목 코드 가져오기
+    """
+    connection = get_db_connection()
+    try:
+        with connection.cursor() as cursor:
+            sql = """
+            select ticker
+            from HC_stock_master
+            where 1=1
+                and status = "ACTIVE"
+            """
+            cursor.execute(sql)
+
+            rows = cursor.fetchall()
+            ticker_list = [row['ticker'] for row in rows]
+
+            return ticker_list
+    except Exception as e:
+        print(f"테이블 생성 중 에러 발생{e}")
+        return []
+    finally:
+        connection.close()
+
+
 def createTalbe(sql):
     """
     테이블 생성 공통 함수
