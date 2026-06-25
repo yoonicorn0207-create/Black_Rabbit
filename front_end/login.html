@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BlackRabbit Login</title>
+    <style>
+        :root {
+            --glass-bg: rgba(20, 25, 35, 0.85);
+            --accent-yellow: #f7df1e;
+            --text-white: #ffffff;
+            --text-red: #ff3e3e;
+            --input-bg: rgba(255, 255, 255, 0.1);
+            --button-radius: 50px;
+        }
+
+        body { margin: 0; padding: 0; display: grid; height: 100vh; place-items: center; overflow: hidden; font-family: sans-serif; background-color: #0e1118; }
+
+        #bg-video {
+            position: fixed; top: 50%; left: 50%; min-width: 100%; min-height: 100%;
+            transform: translateX(-50%) translateY(-50%); z-index: -1; object-fit: cover;
+        }
+
+        .container {
+            background-color: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 1rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            height: 540px; 
+            max-width: 900px; 
+            width: 100%;
+            position: relative; overflow: hidden;
+        }
+
+        /* 텍스트 로고 스타일 */
+        .logo-text {
+            font-size: 2.5rem;
+            font-weight: 900;
+            margin-bottom: 1.5rem;
+            letter-spacing: 2px;
+        }
+        .text-black { color: var(--text-white); }
+        .text-rabbit { color: var(--text-red); }
+
+        .container__form { height: 100%; position: absolute; top: 0; transition: all 0.6s ease-in-out; }
+        
+        /* [수정] 초기 로그인 폼은 우측에 위치하게 세팅되어야 오버레이(우측) 활성화 시 좌측으로 밀립니다 */
+        .container--signin { left: 0; width: 50%; z-index: 2; opacity: 1; }
+        .container--signup { left: 0; width: 50%; z-index: 1; opacity: 0; }
+        
+        /* 애니메이션 활성화 시 폼 이동 방식 정밀 수정 */
+        .container.right-panel-active .container--signin { transform: translateX(100%); opacity: 0; z-index: 1; }
+        .container.right-panel-active .container--signup { transform: translateX(100%); opacity: 1; z-index: 5; }
+
+        .form { display: flex; align-items: center; justify-content: center; flex-direction: column; padding: 0 3rem; height: 100%; box-sizing: border-box; }
+        
+        .input {
+            background-color: var(--input-bg);
+            border: 1px solid rgba(255,255,255,0.2);
+            padding: 0.8rem 1rem; margin: 0.4rem 0; width: 100%;
+            border-radius: 8px; color: white;
+            font-size: 0.95rem; box-sizing: border-box;
+        }
+        .input:focus { outline: none; border-color: var(--accent-yellow); }
+
+        /* 드롭다운(select) 전용 스타일 추가 */
+        select.input {
+            appearance: none; /* 브라우저 기본 화살표 제거 */
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            background-size: 1.2rem;
+            cursor: pointer;
+        }
+
+        /* 선택 전 안내 문구(초기 예수금 선택) 글자색을 약간 흐리게 변경 */
+        select.input:invalid,
+        select.input option[value=""] {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        /* 드롭다운 열렸을 때 각 옵션들의 배경색 지정 (다크모드 유지) */
+        select.input option {
+            background-color: #141923;
+            color: white;
+            padding: 0.5rem;
+        }
+
+        .btn {
+            background-color: var(--accent-yellow);
+            color: #000; font-weight: 800; border-radius: var(--button-radius);
+            padding: 1rem 3.5rem; cursor: pointer; border: none;
+            text-transform: uppercase; margin-top: 1.5rem;
+            transition: 0.3s; font-size: 1rem;
+        }
+        .btn:hover { box-shadow: 0 0 15px var(--accent-yellow); transform: scale(1.03); }
+        
+        /* 오버레이 전용 투명 버튼 스타일 */
+        .btn-overlay {
+            background: transparent;
+            border: 2px solid var(--text-white);
+            color: var(--text-white);
+        }
+        .btn-overlay:hover {
+            background: var(--text-white);
+            color: #000;
+            box-shadow: 0 0 15px var(--text-white);
+        }
+
+        /* [수정] 오버레이 영역의 움직임과 배경색 필터 수정 */
+        .container__overlay { height: 100%; left: 50%; overflow: hidden; position: absolute; top: 0; transition: transform 0.6s ease-in-out; width: 50%; z-index: 100; }
+        .container.right-panel-active .container__overlay { transform: translateX(-100%); }
+        
+        .overlay { 
+            background: linear-gradient(135deg, rgba(20, 25, 35, 0.95), rgba(40, 50, 70, 0.95)); 
+            color: white; height: 100%; width: 200%; display: flex; position: relative; left: -100%; transition: transform 0.6s ease-in-out; 
+        }
+        .container.right-panel-active .overlay { transform: translateX(50%); }
+        
+        .overlay__panel { width: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; padding: 0 2rem; box-sizing: border-box; }
+        .overlay__panel h2 { margin-bottom: 1rem; font-size: 1.8rem; }
+        .overlay__panel p { font-size: 0.9rem; margin-bottom: 2rem; opacity: 0.8; line-height: 1.5; }
+    </style>
+</head>
+<body>
+    <video id="bg-video" autoplay muted loop playsinline>
+        <source src="login_vedio.mp4" type="video/mp4">
+    </video>
+
+    <div class="container" id="container">
+        <div class="container__form container--signup">
+            <form class="form" onsubmit="return false;">
+                <div class="logo-text"><span class="text-black">BLACK</span><span class="text-rabbit">RABBIT</span></div>
+                <input type="text" placeholder="아이디" class="input" required />
+                <input type="password" placeholder="비밀번호" class="input" required />
+                <input type="password" placeholder="비밀번호 확인" class="input" required />
+                <select class="input select-balance" name="balance" required>
+                    <option value="" disabled selected hidden>초기 예수금 선택</option>
+                    <option value="10000000">1,000만 원</option>
+                    <option value="50000000">5,000만 원</option>
+                    <option value="100000000">1억 원</option>
+                    <option value="500000000">5억 원</option>
+                </select>
+                <button class="btn">회원가입 하기</button>
+            </form>
+        </div>
+        
+        <div class="container__form container--signin">
+            <form class="form" onsubmit="return false;">
+                <div class="logo-text"><span class="text-black">BLACK</span><span class="text-rabbit">RABBIT</span></div>
+                <input type="text" placeholder="아이디" class="input" required />
+                <input type="password" placeholder="비밀번호" class="input" required />
+                <button class="btn">로그인</button>
+            </form>
+        </div>
+
+        <div class="container__overlay">
+            <div class="overlay">
+                <div class="overlay__panel">
+                    <h2>이미 계정이 있으신가요?</h2>
+                    <p>기존에 사용하시던 모의투자 계정으로<br>바로 로그인하여 거래를 시작하세요.</p>
+                    <button class="btn btn-overlay" id="signIn">로그인 하기</button>
+                </div>
+                <div class="overlay__panel">
+                    <h2>처음이신가요?</h2>
+                    <p>간단한 회원가입 후 나만의 가상 자산으로<br>실시간 모의 주식 투자를 체험해 보세요!</p>
+                    <button class="btn btn-overlay" id="signUp">회원가입</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const signInBtn = document.getElementById("signIn");
+        const signUpBtn = document.getElementById("signUp");
+        const container = document.getElementById("container");
+
+        signUpBtn.addEventListener("click", () => {
+            container.classList.add("right-panel-active");
+        });
+
+        signInBtn.addEventListener("click", () => {
+            container.classList.remove("right-panel-active");
+        });
+    </script>
+</body>
+</html>
