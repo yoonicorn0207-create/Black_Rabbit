@@ -52,8 +52,8 @@ def createHcStockMasterTable():
 
 def updateHcStockMasterPipeline():
     """
-    한투 마스터 파일을 읽어와 HC_stock_master 테이블에 Upsert하고,
-    마스터 파일에 없는 종목은 'DELISTED'(상장폐지) 상태로 변경하는 ETL 파이프라인 함수
+    한투 마스터 파일을 읽어와 순수 보통주만 필터링한 후,
+    HC_stock_master 테이블에 Upsert하고 상장폐지 종목을 추적하는 완벽한 ETL 파이프라인 함수
     """
     print("========= 종목 마스터 동기화 시작 =========")
 
@@ -65,7 +65,16 @@ def updateHcStockMasterPipeline():
         print(f"한투 마스터 파일 다운로드 및 파싱 실패: {e}")
         return
 
-    # 2. DB 스키마에 맞게 컬럼명 및 데이터 정제
+    # 2. [수정 및 고도화] 한국투자증권 코드를 이용해 순수 보통주(기업 주식)만 먼저 필터링
+    # 코스피: 그룹코드가 'ST'(주식)인 것만 남김 (ETF, ETN, 리츠 등 완벽 제거)
+    if '그룹코드' in df_kospi.columns:
+        df_kospi = df_kospi[df_kospi['그룹코드'] == 'ST']
+
+    # 코스닥: 증권그룹구분코드가 주식 관련('ST': 벤처, 'UU': 일반, 'FS': 외국주식)인 것만 남김
+    if '증권그룹구분코드' in df_kosdaq.columns:
+        df_kosdaq = df_kosdaq[df_kosdaq['증권그룹구분코드'].isin(['ST', 'UU', 'FS'])]
+
+    # 3. DB 스키마에 맞게 컬럼명 및 데이터 정제
     # 코스피 정제
     df_kospi = df_kospi[['단축코드', '한글명', '상장일자']].rename(
         columns={'단축코드': 'ticker', '한글명': 'stock_name', '상장일자': 'listed_date'}
@@ -88,21 +97,20 @@ def updateHcStockMasterPipeline():
 
     today_date = datetime.now().strftime('%Y-%m-%d')
 
-    # 3. DB 연결 및 데이터 적재 (Upsert)
+    # 4. DB 연결 및 데이터 적재 (Upsert)
     connection = get_db_connection()
     try:
         with connection.cursor() as cursor:
-            print(f"총 {len(today_stocks)}건의 종목 데이터를 DB에 반영 중...")
+            print(f"총 {len(today_stocks)}건의 순수 주식 종목 데이터를 DB에 반영 중...")
 
             # 대량 데이터를 빠르게 넣기 위해 executemany 구조 사용
             upsert_sql = """
-                INSERT INTO HC_stock_master (ticker, stock_name, market_type, status, listed_date, updated_at)
-                VALUES (%s, %s, %s, 'ACTIVE', %s, NOW())
-                ON DUPLICATE KEY UPDATE
-                    stock_name = VALUES(stock_name),
-                    status = 'ACTIVE',
-                    updated_at = NOW();
-            """
+                         INSERT INTO HC_stock_master (ticker, stock_name, market_type, status, listed_date, updated_at)
+                         VALUES (%s, %s, %s, 'ACTIVE', %s, NOW()) ON DUPLICATE KEY \
+                         UPDATE \
+                             stock_name = \
+                         VALUES (stock_name), status = 'ACTIVE', updated_at = NOW(); \
+                         """
 
             # 튜플 리스트로 변환하여 한 번에 실행
             data_tuples = [
@@ -111,14 +119,15 @@ def updateHcStockMasterPipeline():
             ]
             cursor.executemany(upsert_sql, data_tuples)
 
-            # 4. 상장 폐지(Delisted) 검사 및 반영
-            # 어제까지 ACTIVE였는데 오늘 한투 파일에 없어서 updated_at이 오늘 날짜로 안 바뀐 애들을 DELISTED로 바꿈
+            # 5. 상장 폐지(Delisted) 검사 및 반영
             print("상장 폐지 종목 검사 중...")
             delist_sql = """
-                UPDATE HC_stock_master
-                SET status = 'DELISTED'
-                WHERE status = 'ACTIVE' AND DATE(updated_at) < %s;
-            """
+                         UPDATE HC_stock_master
+                         SET status = 'DELISTED'
+                         WHERE status = 'ACTIVE' \
+                           AND DATE (updated_at) \
+                             < %s; \
+                         """
             cursor.execute(delist_sql, (today_date,))
 
         connection.commit()
