@@ -139,3 +139,73 @@ def updateHcStockMasterPipeline():
     finally:
         connection.close()
 
+def createStockMinute1Table():
+    """
+    주식당일분봉조회 inquire-time-itemchartprice
+    output1 적재용 테이블 생성 쿼리
+    """
+    connection = get_db_connection()
+
+    try:
+        with connection.cursor() as cursor:
+            sql = """
+            CREATE TABLE IF NOT EXISTS HC_stock_minute1 (
+                id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                ticker VARCHAR(10) NOT NULL COMMENT '종목코드 (예: 005930)',
+                stck_bsop_date DATE NOT NULL COMMENT '영업 일자 (YYYY-MM-DD)',
+                stck_prpr INT NOT NULL COMMENT '당일 최종 종가 (주식 현재가)',
+                prdy_vrss INT NOT NULL COMMENT '전일 대비 등락폭',
+                prdy_ctrt DECIMAL(5,2) NOT NULL COMMENT '전일 대비 등락률',
+                acml_vol BIGINT NOT NULL COMMENT '당일 누적 거래량',
+                acml_tr_pbmn BIGINT NOT NULL COMMENT '당일 누적 거래대금',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '시스템 데이터 적재 시간',
+
+                -- 동일 종목의 같은 날짜 데이터 중복 방지 및 일별 조회용 복합 유니크 인덱스
+                UNIQUE KEY uq_ticker_date (ticker, stck_bsop_date)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='한국투자증권 output1 기준 당일 마감 일별 요약 테이블';
+            """
+            cursor.execute(sql)
+
+            connection.commit()
+    except Exception as e:
+        connection.rollback()
+        print(f"테이블 생성 중 에러 발생: {e}")
+    finally:
+        connection.close()
+
+
+def createStockMinute2Table():
+    """
+    주식당일분봉조회 inquire-time-itemchartprice
+    output2 적재용 테이블 생성 쿼리
+    """
+    connection = get_db_connection()
+
+    try:
+        with connection.cursor() as cursor:
+            sql = """
+            CREATE TABLE IF NOT EXISTS HC_stock_minute2 (
+                id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                ticker VARCHAR(10) NOT NULL COMMENT '종목코드 (예: 005930)',
+                stck_bsop_date DATE NOT NULL COMMENT '영업 일자 (YYYY-MM-DD)',
+                stck_cntg_hour TIME NOT NULL COMMENT '주식 체결 시간 / 분봉 시간 (HH:MM:SS)',
+                stck_oprc INT NOT NULL COMMENT '주식 시가 (해당 분 시작 가격)',
+                stck_hgpr INT NOT NULL COMMENT '주식 고가 (해당 분 최고 가격)',
+                stck_lwpr INT NOT NULL COMMENT '주식 저가 (해당 분 최저 가격)',
+                stck_prpr INT NOT NULL COMMENT '주식 현재가 / 종가 (해당 분 마감 가격)',
+                cntg_vol BIGINT NOT NULL COMMENT '체결 거래량 (해당 1분 동안 터진 거래량)',
+                acml_tr_pbmn BIGINT NOT NULL COMMENT '누적 거래대금 (당일 장 시작부터 해당 분까지의 누적치)',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '시스템 데이터 적재 시간',
+
+                -- 분 단위 데이터 중복 방지 및 대용량 조회 성능 최적화를 위한 복합 유니크 인덱스
+                UNIQUE KEY uq_ticker_date_time (ticker, stck_bsop_date, stck_cntg_hour)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='한국투자증권 output2 기준 1분 단위 분봉 적재 테이블';
+            """
+            cursor.execute(sql)
+
+            connection.commit()
+    except Exception as e:
+        connection.rollback()
+        print(f"테이블 생성 중 에러 발생: {e}")
+    finally:
+        connection.close()
