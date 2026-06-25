@@ -52,8 +52,8 @@ def createHcStockMasterTable():
 
 def updateHcStockMasterPipeline():
     """
-    한투 마스터 파일을 읽어와 HC_stock_master 테이블에 Upsert하고,
-    마스터 파일에 없는 종목은 'DELISTED'(상장폐지) 상태로 변경하는 ETL 파이프라인 함수
+    한투 마스터 파일을 읽어와 순수 보통주만 필터링한 후,
+    HC_stock_master 테이블에 Upsert하고 상장폐지 종목을 추적하는 완벽한 ETL 파이프라인 함수
     """
     print("========= 종목 마스터 동기화 시작 =========")
 
@@ -65,7 +65,16 @@ def updateHcStockMasterPipeline():
         print(f"한투 마스터 파일 다운로드 및 파싱 실패: {e}")
         return
 
-    # 2. DB 스키마에 맞게 컬럼명 및 데이터 정제
+    # 2. [수정 및 고도화] 한국투자증권 코드를 이용해 순수 보통주(기업 주식)만 먼저 필터링
+    # 코스피: 그룹코드가 'ST'(주식)인 것만 남김 (ETF, ETN, 리츠 등 완벽 제거)
+    if '그룹코드' in df_kospi.columns:
+        df_kospi = df_kospi[df_kospi['그룹코드'] == 'ST']
+
+    # 코스닥: 증권그룹구분코드가 주식 관련('ST': 벤처, 'UU': 일반, 'FS': 외국주식)인 것만 남김
+    if '증권그룹구분코드' in df_kosdaq.columns:
+        df_kosdaq = df_kosdaq[df_kosdaq['증권그룹구분코드'].isin(['ST', 'UU', 'FS'])]
+
+    # 3. DB 스키마에 맞게 컬럼명 및 데이터 정제
     # 코스피 정제
     df_kospi = df_kospi[['단축코드', '한글명', '상장일자']].rename(
         columns={'단축코드': 'ticker', '한글명': 'stock_name', '상장일자': 'listed_date'}
@@ -88,21 +97,20 @@ def updateHcStockMasterPipeline():
 
     today_date = datetime.now().strftime('%Y-%m-%d')
 
-    # 3. DB 연결 및 데이터 적재 (Upsert)
+    # 4. DB 연결 및 데이터 적재 (Upsert)
     connection = get_db_connection()
     try:
         with connection.cursor() as cursor:
-            print(f"총 {len(today_stocks)}건의 종목 데이터를 DB에 반영 중...")
+            print(f"총 {len(today_stocks)}건의 순수 주식 종목 데이터를 DB에 반영 중...")
 
             # 대량 데이터를 빠르게 넣기 위해 executemany 구조 사용
             upsert_sql = """
-                INSERT INTO HC_stock_master (ticker, stock_name, market_type, status, listed_date, updated_at)
-                VALUES (%s, %s, %s, 'ACTIVE', %s, NOW())
-                ON DUPLICATE KEY UPDATE
-                    stock_name = VALUES(stock_name),
-                    status = 'ACTIVE',
-                    updated_at = NOW();
-            """
+                         INSERT INTO HC_stock_master (ticker, stock_name, market_type, status, listed_date, updated_at)
+                         VALUES (%s, %s, %s, 'ACTIVE', %s, NOW()) ON DUPLICATE KEY \
+                         UPDATE \
+                             stock_name = \
+                         VALUES (stock_name), status = 'ACTIVE', updated_at = NOW(); \
+                         """
 
             # 튜플 리스트로 변환하여 한 번에 실행
             data_tuples = [
@@ -111,14 +119,15 @@ def updateHcStockMasterPipeline():
             ]
             cursor.executemany(upsert_sql, data_tuples)
 
-            # 4. 상장 폐지(Delisted) 검사 및 반영
-            # 어제까지 ACTIVE였는데 오늘 한투 파일에 없어서 updated_at이 오늘 날짜로 안 바뀐 애들을 DELISTED로 바꿈
+            # 5. 상장 폐지(Delisted) 검사 및 반영
             print("상장 폐지 종목 검사 중...")
             delist_sql = """
-                UPDATE HC_stock_master
-                SET status = 'DELISTED'
-                WHERE status = 'ACTIVE' AND DATE(updated_at) < %s;
-            """
+                         UPDATE HC_stock_master
+                         SET status = 'DELISTED'
+                         WHERE status = 'ACTIVE' \
+                           AND DATE (updated_at) \
+                             < %s; \
+                         """
             cursor.execute(delist_sql, (today_date,))
 
         connection.commit()
@@ -130,3 +139,73 @@ def updateHcStockMasterPipeline():
     finally:
         connection.close()
 
+def createStockMinute1Table():
+    """
+    주식당일분봉조회 inquire-time-itemchartprice
+    output1 적재용 테이블 생성 쿼리
+    """
+    connection = get_db_connection()
+
+    try:
+        with connection.cursor() as cursor:
+            sql = """
+            CREATE TABLE IF NOT EXISTS HC_stock_minute1 (
+                id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                ticker VARCHAR(10) NOT NULL COMMENT '종목코드 (예: 005930)',
+                stck_bsop_date DATE NOT NULL COMMENT '영업 일자 (YYYY-MM-DD)',
+                stck_prpr INT NOT NULL COMMENT '당일 최종 종가 (주식 현재가)',
+                prdy_vrss INT NOT NULL COMMENT '전일 대비 등락폭',
+                prdy_ctrt DECIMAL(5,2) NOT NULL COMMENT '전일 대비 등락률',
+                acml_vol BIGINT NOT NULL COMMENT '당일 누적 거래량',
+                acml_tr_pbmn BIGINT NOT NULL COMMENT '당일 누적 거래대금',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '시스템 데이터 적재 시간',
+
+                -- 동일 종목의 같은 날짜 데이터 중복 방지 및 일별 조회용 복합 유니크 인덱스
+                UNIQUE KEY uq_ticker_date (ticker, stck_bsop_date)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='한국투자증권 output1 기준 당일 마감 일별 요약 테이블';
+            """
+            cursor.execute(sql)
+
+            connection.commit()
+    except Exception as e:
+        connection.rollback()
+        print(f"테이블 생성 중 에러 발생: {e}")
+    finally:
+        connection.close()
+
+
+def createStockMinute2Table():
+    """
+    주식당일분봉조회 inquire-time-itemchartprice
+    output2 적재용 테이블 생성 쿼리
+    """
+    connection = get_db_connection()
+
+    try:
+        with connection.cursor() as cursor:
+            sql = """
+            CREATE TABLE IF NOT EXISTS HC_stock_minute2 (
+                id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                ticker VARCHAR(10) NOT NULL COMMENT '종목코드 (예: 005930)',
+                stck_bsop_date DATE NOT NULL COMMENT '영업 일자 (YYYY-MM-DD)',
+                stck_cntg_hour TIME NOT NULL COMMENT '주식 체결 시간 / 분봉 시간 (HH:MM:SS)',
+                stck_oprc INT NOT NULL COMMENT '주식 시가 (해당 분 시작 가격)',
+                stck_hgpr INT NOT NULL COMMENT '주식 고가 (해당 분 최고 가격)',
+                stck_lwpr INT NOT NULL COMMENT '주식 저가 (해당 분 최저 가격)',
+                stck_prpr INT NOT NULL COMMENT '주식 현재가 / 종가 (해당 분 마감 가격)',
+                cntg_vol BIGINT NOT NULL COMMENT '체결 거래량 (해당 1분 동안 터진 거래량)',
+                acml_tr_pbmn BIGINT NOT NULL COMMENT '누적 거래대금 (당일 장 시작부터 해당 분까지의 누적치)',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '시스템 데이터 적재 시간',
+
+                -- 분 단위 데이터 중복 방지 및 대용량 조회 성능 최적화를 위한 복합 유니크 인덱스
+                UNIQUE KEY uq_ticker_date_time (ticker, stck_bsop_date, stck_cntg_hour)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='한국투자증권 output2 기준 1분 단위 분봉 적재 테이블';
+            """
+            cursor.execute(sql)
+
+            connection.commit()
+    except Exception as e:
+        connection.rollback()
+        print(f"테이블 생성 중 에러 발생: {e}")
+    finally:
+        connection.close()
