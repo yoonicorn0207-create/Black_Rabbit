@@ -1,3 +1,5 @@
+<%@ page isELIgnored="true" %>
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -186,6 +188,57 @@
         {code: '018260', name: '삼성에스디에스', price: 160000, avg: 155000, ratio: 1, change: '+1.2%'}
     ];
 
+    /* * [API 통신] (2026_0626에 추가)
+         * fetchAndRender: 서버의 /api/stockList 경로에서 종목 데이터를 가져와
+         * 렌더링 함수인 renderWatchlist로 데이터를 전달.
+         */
+    async function fetchAndRender() {
+        try {
+            const response = await fetch('/api/stockList');
+            const data = await response.json();
+            renderWatchlist(Array.isArray(data) ? data : []);
+        } catch (error) {
+            console.error('에러:', error);
+        }
+    }
+
+    /* * [Watchlist UI 렌더링] (2026_0626에 추가)
+     * renderWatchlist: API로 받은 stockList 배열을 순회하며 HTML 요소를 생성하여 #watchlist 영역에 삽입.
+     * 클릭 시 상단 종목 타이틀을 변경하는 기능을 포함.
+     */
+    function renderWatchlist(stockList) {
+        const wl = document.getElementById('watchlist');
+        wl.innerHTML = '';
+
+        // stockList가 배열인지 확인 후 처리
+        if (!Array.isArray(stockList)) return;
+
+        stockList.forEach(s => {
+            const code = s.stck_shrn_iscd || "000000";
+            const name = s.hts_kor_isnm || "종목명";
+            const price = s.stck_prpr ? parseInt(s.stck_prpr).toLocaleString() : '0';
+
+            const div = document.createElement('div');
+            // 리스트 디자인을 좀 더 깔끔하게 수정
+            div.className = "px-3 py-2 bg-black rounded border border-gray-800 hover:border-gray-600 transition cursor-pointer flex justify-between items-center";
+            div.innerHTML = `
+                <div class="text-sm font-bold text-white truncate">[${code}] ${name}</div>
+                <div class="text-sm font-mono text-gray-300">₩ ${price}</div>
+            `;
+
+            // 리스트 클릭 시 차트 타이틀 변경 예시 (필요 시)
+            div.onclick = () => {
+                document.getElementById('stock-title').innerText = name;
+            };
+
+            wl.appendChild(div);
+        });
+    }
+
+    /* * [데이터 생성]
+         * generateCandleData: 차트에 사용할 랜덤 봉 데이터를 생성합니다.
+         * days 인자만큼의 날짜 데이터를 만들어 반환합니다.
+         */
     function generateCandleData(days) {
         let data = [], price = 70000;
         for (let i = 0; i < days; i++) {
@@ -196,6 +249,10 @@
         return data;
     }
 
+    /* * [보유 종목 UI 렌더링]
+     * renderHoldings: stocks 배열 정보를 바탕으로
+     * #holding-list 영역에 보유 주식 현황 표를 생성합니다.
+     */
     function renderHoldings() {
         const list = document.getElementById('holding-list');
         list.innerHTML = `<div class="grid grid-cols-4 gap-1 text-gray-500 border-b border-gray-800 pb-1 mb-1"><span>종목</span><span>평단</span><span>현재</span><span>수익</span></div>`;
@@ -206,39 +263,9 @@
         });
     }
 
-    function renderWatchlist() {
-        const wl = document.getElementById('watchlist');
-        wl.innerHTML = '';
-
-        stocks.forEach(s => {
-            const div = document.createElement('div');
-
-            div.className = "px-3 py-3 bg-black rounded border border-gray-800 cursor-pointer hover:border-gray-600 transition";
-
-            div.innerHTML = `
-                    <div class="flex items-center justify-between">
-                        
-                        <span class="text-sm font-bold text-white truncate">
-                            <span class="text-[13px] text-gray-400 truncate">
-                                [${s.code}]
-                            </span>
-                            ${s.name}
-                        </span>
-                        <span class="text-sm font-mono ml-2 ${s.change.startsWith('+') ? 'text-red-400' : 'text-blue-400'}">
-                            ₩ ${s.price.toLocaleString()}
-                            <span>(${s.change})</span>
-                        </span>
-                    </div>
-                `;
-
-            div.onclick = () => {
-                document.getElementById('stock-title').innerText = s.name;
-            };
-
-            wl.appendChild(div);
-        });
-    }
-
+    /* * [초기화 및 차트 설정]
+         * 페이지 로드 시 차트 객체를 선언하고 렌더링합니다.
+         */
     const chart = new ApexCharts(document.querySelector("#main-chart"), {
         series: [{data: generateCandleData(30)}],
         chart: {type: 'candlestick', height: '100%', toolbar: {show: false}},
@@ -254,8 +281,12 @@
         chart: {type: 'donut', height: 160},
         legend: {show: false}
     });
-    donutChart.render();
 
+
+    /* * [이벤트 핸들러]
+     * updatePeriod: 차트 기간 버튼 클릭 시 호출됩니다.
+     * 버튼 디자인을 변경하고 선택된 기간에 맞춰 차트 데이터를 업데이트합니다.
+     */
     function updatePeriod(period, button) {
 
         document.querySelectorAll('.period-btn').forEach(btn => {
@@ -273,8 +304,26 @@
         chart.updateSeries([{data: generateCandleData(days)}]);
     }
 
-    renderWatchlist();
-    renderHoldings();
+    /* * [페이지 라이프사이클 관리]
+         * DOMContentLoaded: HTML 문서가 모두 로드된 직후 실행되는 초기화 블록입니다.
+         */
+    // [중요] 페이지 로드 시 실행되는 부분 (2026_0626에 추가)
+    document.addEventListener('DOMContentLoaded', () => {
+        // 보유 종목 표 출력
+        renderHoldings();
+
+        // 1. Watchlist 서버 데이터 호출
+        fetchAndRender();
+
+        // 2. 5초마다 데이터 갱신
+        setInterval(fetchAndRender, 5000);
+
+        // 차트 렌더링은 유지
+        chart.render();
+        donutChart.render();
+    });
+
+
 </script>
 </body>
 </html>

@@ -1,15 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE configuration PUBLIC "-//mybatis.org//DTD Config 3.0//EN" "http://mybatis.org/dtd/mybatis-3-config.dtd">
 <configuration>
-	<!-- 일반 주석 <settings> DB의 스네이크 케이스(_ )를 자바의 카멜 케이스로 자동 변환 <setting name="mapUnderscoreToCamelCase" 
-		value="true"/> </settings> -->
-	<typeAliases>
-		<!-- 예시 UserVO를 매퍼에서 그냥 'user'라고 짧게 부를 수 있게 설정 -->
-	<!-- 	<typeAlias alias="user"
-			type="com.kopo.bscode.user.vo.UserVO" /> -->
+    <!-- 일반 주석 <settings> DB의 스네이크 케이스(_ )를 자바의 카멜 케이스로 자동 변환 <setting name="mapUnderscoreToCamelCase"
+        value="true"/> </settings> -->
+    <typeAliases>
+        <!-- 예시 StockDTO 매퍼에서 그냥 'stockDTO'라고 짧게 부를 수 있게 설정  (2026_0626에 추가) -->
+        <typeAlias alias="stockDTO"
+                   type="com.blackrabbit.stock.StockDTO"/>
 
-
-	</typeAliases>
+    </typeAliases>
 
 
 </configuration>
