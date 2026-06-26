@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from service.stocks_info.kis_kospi_code_mst import get_market_master_dataframe
 from service.stocks_info.kis_kosdaq_code_mst import get_kosdaq_master_dataframe
 
-load_dotenv(dotenv_path="..\dataset\config\.env")
+load_dotenv(dotenv_path="../dataset/config/.env")
 
 def get_db_connection():
     """ MySQL 연결 설정 """
