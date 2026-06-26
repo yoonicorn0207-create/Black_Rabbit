@@ -6,12 +6,11 @@ import time
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 
-# 1. 설정: .env 파일 로드
+# 1. 환경 변수 설정
 current_dir = os.path.dirname(os.path.abspath(__file__)) if '__file__' in locals() else os.getcwd()
 dotenv_path = os.path.abspath(os.path.join(current_dir, "..", "dataset", "config", ".env"))
 load_dotenv(dotenv_path=dotenv_path, override=True)
 
-# 환경 변수 가져오기
 KIS_APP_KEY = os.getenv("KIS_APP_KEY")
 KIS_APP_SECRET = os.getenv("KIS_APP_SECRET")
 KIS_URL = os.getenv("KIS_URL")
@@ -20,10 +19,12 @@ DB_USER = os.getenv("DB_USER")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
 DB_NAME = os.getenv("DB_NAME")
 
+
 def get_db_connection():
     return pymysql.connect(host=DB_HOST, user=DB_USER, password=DB_PASSWORD,
                            database=DB_NAME, port=3306, charset='utf8mb4',
                            cursorclass=pymysql.cursors.DictCursor)
+
 
 def getKisToken():
     url = f"{KIS_URL}/oauth2/tokenP"
@@ -31,17 +32,30 @@ def getKisToken():
     response = requests.post(url, headers={"content-type": "application/json"}, data=json.dumps(body))
     return response.json().get("access_token")
 
-# [추가됨] DB에서 종목 리스트를 가져오는 함수
+
+# 전체 리스트 조회 함수
 def get_stock_list():
     conn = get_db_connection()
     try:
         with conn.cursor() as cursor:
-            # [수정] status가 'ACTIVE'인 종목만 가져오도록 SQL 변경
             sql = "SELECT ticker FROM HC_stock_master WHERE status = 'ACTIVE'"
             cursor.execute(sql)
             return [row['ticker'] for row in cursor.fetchall()]
     finally:
         conn.close()
+
+
+# [2026-06-26 추가] 이미 수집된 종목 확인 함수
+def get_already_collected_tickers():
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cursor:
+            sql = "SELECT DISTINCT stck_shrn_iscd FROM HC_stock_daily2"
+            cursor.execute(sql)
+            return [row['stck_shrn_iscd'] for row in cursor.fetchall()]
+    finally:
+        conn.close()
+
 
 def save_to_mysql(table_name, data_dict):
     conn = get_db_connection()
@@ -51,26 +65,12 @@ def save_to_mysql(table_name, data_dict):
             cols = ", ".join([f"`{k}`" for k in keys])
             vals = [data_dict[k] for k in keys]
             update_stmt = ", ".join([f"`{k}`=VALUES(`{k}`)" for k in keys])
-            sql = f"INSERT INTO {table_name} ({cols}) VALUES ({', '.join(['%s']*len(keys))}) ON DUPLICATE KEY UPDATE {update_stmt}"
+            sql = f"INSERT INTO {table_name} ({cols}) VALUES ({', '.join(['%s'] * len(keys))}) ON DUPLICATE KEY UPDATE {update_stmt}"
             cursor.execute(sql, vals)
         conn.commit()
     finally:
         conn.close()
 
-def print_preview(data):
-    print("\n" + "="*70)
-    output1 = data.get('output1', {})
-    print(f">>> [Output1] 기업 정보 요약:")
-    for key, value in output1.items():
-        print(f"  {key:<20} : {value}")
-
-    output2_list = data.get('output2', [])
-    print(f"\n>>> [Output2] 시세 데이터 (이번 구간 총 {len(output2_list)}건):")
-    if output2_list:
-        print(">>> 상세 데이터 (상위 5건):")
-        for i, row in enumerate(output2_list[:5]):
-            print(f"  [{i+1}] 날짜: {row.get('stck_bsop_date')} | 종가: {row.get('stck_clpr')} | 거래량: {row.get('acml_vol')}")
-    print("="*70 + "\n")
 
 def fetch_and_store_2years(stock_code):
     token = getKisToken()
@@ -96,8 +96,6 @@ def fetch_and_store_2years(stock_code):
                                 headers=headers, params=params)
         data = response.json()
 
-        print_preview(data)
-
         if data.get("rt_cd") == "0":
             def clean_data(d):
                 keys_to_fix = [k for k in d.keys() if k.endswith(" name")]
@@ -109,7 +107,6 @@ def fetch_and_store_2years(stock_code):
 
             output1 = data.get('output1', {})
             if output1: save_to_mysql("HC_stock_daily1", clean_data(output1))
-
             for row in data.get('output2', []):
                 save_to_mysql("HC_stock_daily2", clean_data(row))
 
@@ -118,9 +115,25 @@ def fetch_and_store_2years(stock_code):
 
     print(f"[{stock_code}] 모든 데이터 수집 및 DB 저장 완료.")
 
+
 if __name__ == "__main__":
-    # DB의 HC_stock_info 테이블에서 리스트를 가져와 자동으로 수집
-    stock_codes = get_stock_list()
-    for code in stock_codes:
-        print(f"\n>>> [{code}] 종목 수집 시작")
-        fetch_and_store_2years(code)
+    # 1. DB에서 전체 ACTIVE 종목 리스트 가져오기
+    all_codes = get_stock_list()
+
+    # 2. 이미 수집된 종목 리스트 가져오기 (2026-06-26 업데이트)
+    collected_codes = get_already_collected_tickers()
+
+    # 3. [핵심] 차집합 연산 (전체 - 이미 수집됨 = 남은 종목)
+    codes_to_collect = [code for code in all_codes if code not in collected_codes]
+
+    print(f"전체: {len(all_codes)}개 | 이미 수집됨: {len(collected_codes)}개 | 남은 종목: {len(codes_to_collect)}개")
+
+    # 4. 남은 종목만 순차적으로 수집
+    for code in codes_to_collect:
+        try:
+            print(f"\n>>> [{code}] 수집 시작")
+            fetch_and_store_2years(code)
+            time.sleep(1.0)
+        except Exception as e:
+            print(f"!!! [{code}] 에러 발생, 다음 종목으로 진행합니다: {e}")
+            continue
