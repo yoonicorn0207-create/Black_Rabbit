@@ -1,14 +1,10 @@
 import os
 import requests
 import json
-from datetime import datetime
 from dotenv import load_dotenv
-from decimal import Decimal
 
-current_dir = os.path.dirname(os.path.abspath(__file__)) if '__file__' in locals() else os.getcwd()
-dotenv_path = os.path.abspath(os.path.join(current_dir, "..", "dataset", "config", ".env"))
-
-load_dotenv(dotenv_path=dotenv_path, override=True)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+load_dotenv(dotenv_path=os.path.join(BASE_DIR, "../dataset/config/.env"), override=True)
 
 KIS_APP_KEY = os.getenv("KIS_APP_KEY")
 KIS_APP_SECRET = os.getenv("KIS_APP_SECRET")
