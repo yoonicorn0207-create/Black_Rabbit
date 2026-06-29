@@ -118,7 +118,9 @@
         <h2 class="text-xs font-bold uppercase">Watchlist</h2>
         <!-- 검색 -->
         <div class="flex gap-1">
-            <input type="text" id="stockInput" placeholder="종목 검색..."
+            <input type="text" id="stockInput"
+                   placeholder="종목 검색..."
+                   oninput="filterWatchlist(this.value)"
                    class="flex-1 p-2 bg-gray-900 border border-gray-700 rounded text-sm">
             <button onclick="addStock()" class="px-3 bg-gray-700 rounded text-sm text-white">검색</button>
         </div>
@@ -164,6 +166,7 @@
 </main>
 
 <script>
+    let allStocks = []; // 전역 변수 추가
     let currentStockCode = "005930"; // 기본값 삼성전자
 
     const stocks = [
@@ -197,11 +200,15 @@
         try {
             const response = await fetch('/api/stockList');
             const data = await response.json();
-            renderWatchlist(Array.isArray(data) ? data : []);
+            // 1. 전체 데이터를 전역 변수에 담기
+            allStocks = Array.isArray(data) ? data : []; // 데이터를 전역 변수에 보관(2026_0629)
+
+            // 2. 초기 리스트 렌더링
+            renderWatchlist(allStocks); // 초기에는 전체 출력(2026_0629)
         } catch (error) {
             console.error('에러:', error);
         }
-    }
+    }//
 
     /* * [Watchlist UI 렌더링] (2026_0626에 추가)
      * renderWatchlist: API로 받은 stockList 배열을 순회하며 HTML 요소를 생성하여 #watchlist 영역에 삽입.
@@ -242,20 +249,6 @@
             wl.appendChild(div);
         });
     }
-
-    /* * [데이터 생성] - (기존)
-         * generateCandleData: 차트에 사용할 랜덤 봉 데이터를 생성합니다.
-         * days 인자만큼의 날짜 데이터를 만들어 반환합니다.
-         */
-    <%--function generateCandleData(days) {--%>
-    <%--    let data = [], price = 70000;--%>
-    <%--    for (let i = 0; i < days; i++) {--%>
-    <%--        let change = (Math.random() - 0.5) * 4000;--%>
-    <%--        data.push({x: `2026-06-${i + 1}`, y: [price, price + 2000, price - 2000, price + change]});--%>
-    <%--        price += change;--%>
-    <%--    }--%>
-    <%--    return data;--%>
-    <%--}--%>
 
     // [추가] fetch를 사용하는 새로운 차트 데이터 로드 함수 (2026_0629 생성)
     async function fetchChartData(stockCode, period) {
@@ -333,6 +326,24 @@
         fetchChartData(currentStockCode, period);
     }
 
+
+    // 검색창 입력 시 호출될 함수(2026_0629)
+    function filterWatchlist(keyword) {
+        const searchKeyword = keyword.toLowerCase().trim();
+
+        // 코드 혹은 이름이 포함된 항목만 필터링
+        const filtered = allStocks.filter(s =>
+            (s.stck_shrn_iscd && s.stck_shrn_iscd.includes(searchKeyword)) ||
+            (s.hts_kor_isnm && s.hts_kor_isnm.toLowerCase().includes(searchKeyword))
+        );
+
+        renderWatchlist(filtered); // 필터링된 데이터만 다시 그리기
+    }//검색창 검색어 입력 시 호출
+
+
+
+
+
     /* * [페이지 라이프사이클 관리]
          * DOMContentLoaded: HTML 문서가 모두 로드된 직후 실행되는 초기화 블록입니다.
          */
@@ -351,7 +362,7 @@
 
 
         // 5초마다 데이터 갱신
-        setInterval(fetchAndRender, 5000);
+        setInterval(fetchAndRender, 50000);
     });
 
 
