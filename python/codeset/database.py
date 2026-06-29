@@ -59,13 +59,14 @@ def patchAllRows(sql, data, errorMsg):
 def queryRows(sql,errorMsg, params=None):
     """ SQL을 실행하고 결과를 리스트(딕셔너리 형태)로 반환하는 공통 조회 함수 """
     conn = get_db_connection()
+
     try:
         with conn.cursor() as cursor:
-            patchSingleRow(sql, errorMsg, params)
+            cursor.execute(sql, params)
 
             return cursor.fetchall() # 조회 결과 반환
     except Exception as e:
-        print(f"DB 조회 실패: {e}")
+        print(f"DB 조회 실패: {e} {errorMsg}")
         raise
     finally:
         conn.close()
