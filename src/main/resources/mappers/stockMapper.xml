@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.blackrabbit.stock.StockMapper">
+
+    <!-- * 1. BlackRabbit 메인페이지 - WatchList  (2026_0626에 추가) -->
+    <select id="getPresent_StockList" resultType="stockDTO">
+        SELECT stck_shrn_iscd, hts_kor_isnm, stck_prpr, prdy_ctrt, prdy_vrss_sign
+        FROM HC_stock_daily1
+        WHERE stck_shrn_iscd IS NOT NULL
+          AND hts_kor_isnm IS NOT NULL
+          AND hts_kor_isnm != ''
+    </select>
+
+
+    <!-- 2. BlackRabbit 메인페이지 - 일별차트 (2026_0629에 추가) -->
+    <select id="getDailyStockChartData" parameterType="String" resultType="stockDailyDTO">
+        SELECT stck_bsop_date,
+               stck_oprc,
+               stck_hgpr,
+               stck_lwpr,
+               stck_clpr
+        FROM HC_stock_daily2
+        WHERE stck_shrn_iscd = #{code}
+        ORDER BY stck_bsop_date ASC
+
+    </select>
+
+</mapper>
