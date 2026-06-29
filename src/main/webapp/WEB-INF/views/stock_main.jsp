@@ -229,25 +229,52 @@
             // 리스트 클릭 시 차트 타이틀 변경 예시 (필요 시)
             div.onclick = () => {
                 document.getElementById('stock-title').innerText = name;
+
+                // [추가] 리스트 클릭 시 차트 데이터를 서버에서 새로 가져오기 (2026_0629)
+                // period는 현재 선택된 버튼 값을 사용하거나, 기본값 '1D'를 넣습니다.
+                fetchChartData(code, '1D');
             };
 
             wl.appendChild(div);
         });
     }
 
-    /* * [데이터 생성]
+    /* * [데이터 생성] - (기존)
          * generateCandleData: 차트에 사용할 랜덤 봉 데이터를 생성합니다.
          * days 인자만큼의 날짜 데이터를 만들어 반환합니다.
          */
-    function generateCandleData(days) {
-        let data = [], price = 70000;
-        for (let i = 0; i < days; i++) {
-            let change = (Math.random() - 0.5) * 4000;
-            data.push({x: `2026-06-${i + 1}`, y: [price, price + 2000, price - 2000, price + change]});
-            price += change;
+    <%--function generateCandleData(days) {--%>
+    <%--    let data = [], price = 70000;--%>
+    <%--    for (let i = 0; i < days; i++) {--%>
+    <%--        let change = (Math.random() - 0.5) * 4000;--%>
+    <%--        data.push({x: `2026-06-${i + 1}`, y: [price, price + 2000, price - 2000, price + change]});--%>
+    <%--        price += change;--%>
+    <%--    }--%>
+    <%--    return data;--%>
+    <%--}--%>
+
+    // [추가] fetch를 사용하는 새로운 차트 데이터 로드 함수 (2026_0629 생성)
+    async function fetchChartData(stockCode, period) {
+        try {
+            // 서버의 컨트롤러로 요청 전송
+            const response = await fetch(`/api/chartData?code=${stockCode}&period=${period}`);
+
+            if (!response.ok) throw new Error('서버 데이터 응답 실패');
+
+            const data = await response.json(); // DB에서 변환된 JSON 데이터 수신
+            console.log("받아온 데이터:", data); // F12 콘솔에서 확인용
+
+            // ApexCharts 차트 객체(chart)의 시리즈 데이터 업데이트
+            chart.updateSeries([{data: data}]); // 서버에서 받은 데이터로 업데이트
+
+            // 종목명 업데이트 (선택 사항)
+            // document.getElementById('stock-title').innerText = stockCode;
+
+        } catch (error) {
+            console.error("차트 데이터를 불러오는 중 에러 발생:", error);
         }
-        return data;
     }
+
 
     /* * [보유 종목 UI 렌더링]
      * renderHoldings: stocks 배열 정보를 바탕으로
@@ -267,7 +294,7 @@
          * 페이지 로드 시 차트 객체를 선언하고 렌더링합니다.
          */
     const chart = new ApexCharts(document.querySelector("#main-chart"), {
-        series: [{data: generateCandleData(30)}],
+        series: [{data: []}],
         chart: {type: 'candlestick', height: '100%', toolbar: {show: false}},
         plotOptions: {candlestick: {colors: {upward: '#ef4444', downward: '#3b82f6'}}},
         xaxis: {labels: {style: {colors: '#9CA3AF'}}},
@@ -308,19 +335,21 @@
          * DOMContentLoaded: HTML 문서가 모두 로드된 직후 실행되는 초기화 블록입니다.
          */
     // [중요] 페이지 로드 시 실행되는 부분 (2026_0626에 추가)
-    document.addEventListener('DOMContentLoaded', () => {
-        // 보유 종목 표 출력
-        renderHoldings();
+    document.addEventListener('DOMContentLoaded', async () => {
+        renderHoldings(); // 보유 종목 표 출력
+        fetchAndRender();  // 1. Watchlist 서버 데이터 호출
 
-        // 1. Watchlist 서버 데이터 호출
-        fetchAndRender();
-
-        // 2. 5초마다 데이터 갱신
-        setInterval(fetchAndRender, 5000);
-
-        // 차트 렌더링은 유지
+        // 1. 차트 초기화 (초기 데이터는 빈 배열로 시작)
+        chart.updateSeries([{data: []}]); //(2026_0629 추가)
         chart.render();
         donutChart.render();
+
+        // 2. 페이지 로드 시 삼성전자(005930) 기본 차트 로딩 (2026_0629)
+        fetchChartData("005930", "1D");
+
+
+        // 5초마다 데이터 갱신
+        setInterval(fetchAndRender, 5000);
     });
 
 

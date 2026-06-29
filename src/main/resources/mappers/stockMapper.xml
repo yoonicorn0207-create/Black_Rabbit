@@ -12,4 +12,18 @@
           AND hts_kor_isnm != ''
     </select>
 
+
+    <!-- 2. BlackRabbit 메인페이지 - 일별차트 (2026_0629에 추가) -->
+    <select id="getDailyStockChartData" parameterType="String" resultType="stockDailyDTO">
+        SELECT stck_bsop_date,
+               stck_oprc,
+               stck_hgpr,
+               stck_lwpr,
+               stck_clpr
+        FROM HC_stock_daily2
+        WHERE stck_shrn_iscd = #{code}
+        ORDER BY stck_bsop_date ASC
+
+    </select>
+
 </mapper>

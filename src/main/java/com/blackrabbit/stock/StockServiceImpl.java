@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 
 @Service("StockService")
 public class StockServiceImpl implements StockService {
@@ -20,8 +21,14 @@ public class StockServiceImpl implements StockService {
         return stock_List;
     }//BlackRabbit 메인페이지 - WatchList
 
+    /* 2. BlackRabbit 메인페이지 - 일별차트 (2026_0629) */
+    @Override
+    public List<StockDailyDTO> getDailyStockChartData(String code) {
 
+        List<StockDailyDTO> stockDaily_chart = stockMapper.getDailyStockChartData(code);
 
+        return stockDaily_chart;
+    }//BlackRabbit 메인페이지 - 일별차트
 
 
 }// StockServiceImpl
