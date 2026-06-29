@@ -1,6 +1,7 @@
 package com.blackrabbit.stock;
 
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 @Mapper
@@ -9,7 +10,7 @@ public interface StockMapper {
     List<StockDTO> getPresent_StockList();
 
     /* 2. BlackRabbit 메인페이지 - 일별차트 (2026_0629에 추가) */
-    List<StockDailyDTO> getDailyStockChartData(String code);
+    List<StockDailyDTO> getDailyStockChartData(@Param("code") String code, @Param("period") String period);
 
 
 }// StockMapper

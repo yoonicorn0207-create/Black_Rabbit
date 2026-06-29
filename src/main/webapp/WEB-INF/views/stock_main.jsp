@@ -131,12 +131,11 @@
         <!-- 선택 종목명 및 봉 선택-->
         <div class="flex gap-2 mb-2 items-center">
             <span class="text-base font-bold text-white mr-2" id="stock-title">삼성전자</span>
-            <button onclick="updatePeriod('1D', this)" class="period-btn active px-3 py-1 rounded text-sm">1일</button>
-            <button onclick="updatePeriod('1W', this)" class="period-btn px-3 py-1 rounded text-sm">1주</button>
-            <button onclick="updatePeriod('1M', this)" class="period-btn px-3 py-1 rounded text-sm">1월</button>
-            <button onclick="updatePeriod('1Y', this)" class="period-btn px-3 py-1 rounded text-sm">1년</button>
+            <button onclick="updatePeriod('minute', this)" class="period-btn active px-3 py-1 rounded text-sm">1분</button>
+            <button onclick="updatePeriod('day', this)" class="period-btn px-3 py-1 rounded text-sm">1일</button>
+            <button onclick="updatePeriod('week', this)" class="period-btn px-3 py-1 rounded text-sm">1주</button>
+            <button onclick="updatePeriod('month', this)" class="period-btn px-3 py-1 rounded text-sm">1월</button>
         </div>
-
         <!-- 차트 -->
         <div id="main-chart"></div>
     </section>
@@ -165,6 +164,8 @@
 </main>
 
 <script>
+    let currentStockCode = "005930"; // 기본값 삼성전자
+
     const stocks = [
         {code: '005930', name: '삼성전자', price: 73500, avg: 70000, ratio: 15, change: '+1.2%'},
         {code: '000660', name: 'SK하이닉스', price: 152000, avg: 160000, ratio: 10, change: '-0.8%'},
@@ -228,11 +229,14 @@
 
             // 리스트 클릭 시 차트 타이틀 변경 예시 (필요 시)
             div.onclick = () => {
+                currentStockCode = code; // 전역 변수 업데이트
                 document.getElementById('stock-title').innerText = name;
 
-                // [추가] 리스트 클릭 시 차트 데이터를 서버에서 새로 가져오기 (2026_0629)
-                // period는 현재 선택된 버튼 값을 사용하거나, 기본값 '1D'를 넣습니다.
-                fetchChartData(code, '1D');
+                // 현재 활성화된 버튼의 period 값을 가져오거나 기본값 'day' 사용
+                const activeBtn = document.querySelector('.period-btn.active');
+                const period = activeBtn ? activeBtn.innerText : 'day';
+
+                fetchChartData(code, period);
             };
 
             wl.appendChild(div);
@@ -295,7 +299,12 @@
          */
     const chart = new ApexCharts(document.querySelector("#main-chart"), {
         series: [{data: []}],
-        chart: {type: 'candlestick', height: '100%', toolbar: {show: false}},
+        chart: {
+            type: 'candlestick',
+            height: '100%',
+            zoom: { enabled: true },
+            pan: { enabled: true } // 마우스 드래그로 과거 데이터 탐색 가능
+        },
         plotOptions: {candlestick: {colors: {upward: '#ef4444', downward: '#3b82f6'}}},
         xaxis: {labels: {style: {colors: '#9CA3AF'}}},
         yaxis: {labels: {style: {colors: '#9CA3AF'}}}
@@ -316,19 +325,12 @@
      */
     function updatePeriod(period, button) {
 
-        document.querySelectorAll('.period-btn').forEach(btn => {
-            btn.classList.remove('active');
-        });
-
+        // 1. UI 활성화 상태 변경
+        document.querySelectorAll('.period-btn').forEach(btn => btn.classList.remove('active'));
         button.classList.add('active');
 
-        const days =
-            period === '1D' ? 30 :
-                period === '1W' ? 90 :
-                    period === '1M' ? 180 :
-                        365;
-
-        chart.updateSeries([{data: generateCandleData(days)}]);
+        // 서버에 파라미터 전달 (예: 'day')
+        fetchChartData(currentStockCode, period);
     }
 
     /* * [페이지 라이프사이클 관리]
