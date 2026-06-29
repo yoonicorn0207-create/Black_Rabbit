@@ -34,9 +34,9 @@ public class StockController {
     /* 2. BlackRabbit 메인페이지 - 일별차트 (2026_0629) */
     @RequestMapping("/api/chartData")
     @ResponseBody
-    public List<Map<String, Object>> getChartData(@RequestParam("code") String code) {
+    public List<Map<String, Object>> getChartData(@RequestParam("code") String code, @RequestParam("period") String period) {
         // 1. Service를 통해 DB에서 데이터 조회
-        List<StockDailyDTO> dailyList = stockService.getDailyStockChartData(code);
+        List<StockDailyDTO> dailyList = stockService.getDailyStockChartData(code, period);
 
 
         // 2. ApexCharts가 인식할 수 있는 JSON 구조로 변환

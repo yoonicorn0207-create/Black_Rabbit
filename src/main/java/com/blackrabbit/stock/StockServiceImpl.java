@@ -23,9 +23,9 @@ public class StockServiceImpl implements StockService {
 
     /* 2. BlackRabbit 메인페이지 - 일별차트 (2026_0629) */
     @Override
-    public List<StockDailyDTO> getDailyStockChartData(String code) {
+    public List<StockDailyDTO> getDailyStockChartData(String code, String period) {
 
-        List<StockDailyDTO> stockDaily_chart = stockMapper.getDailyStockChartData(code);
+        List<StockDailyDTO> stockDaily_chart = stockMapper.getDailyStockChartData(code, period);
 
         return stockDaily_chart;
     }//BlackRabbit 메인페이지 - 일별차트

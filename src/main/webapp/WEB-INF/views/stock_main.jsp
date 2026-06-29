@@ -118,7 +118,9 @@
         <h2 class="text-xs font-bold uppercase">Watchlist</h2>
         <!-- 검색 -->
         <div class="flex gap-1">
-            <input type="text" id="stockInput" placeholder="종목 검색..."
+            <input type="text" id="stockInput"
+                   placeholder="종목 검색..."
+                   oninput="filterWatchlist(this.value)"
                    class="flex-1 p-2 bg-gray-900 border border-gray-700 rounded text-sm">
             <button onclick="addStock()" class="px-3 bg-gray-700 rounded text-sm text-white">검색</button>
         </div>
@@ -131,12 +133,11 @@
         <!-- 선택 종목명 및 봉 선택-->
         <div class="flex gap-2 mb-2 items-center">
             <span class="text-base font-bold text-white mr-2" id="stock-title">삼성전자</span>
-            <button onclick="updatePeriod('1D', this)" class="period-btn active px-3 py-1 rounded text-sm">1일</button>
-            <button onclick="updatePeriod('1W', this)" class="period-btn px-3 py-1 rounded text-sm">1주</button>
-            <button onclick="updatePeriod('1M', this)" class="period-btn px-3 py-1 rounded text-sm">1월</button>
-            <button onclick="updatePeriod('1Y', this)" class="period-btn px-3 py-1 rounded text-sm">1년</button>
+            <button onclick="updatePeriod('minute', this)" class="period-btn active px-3 py-1 rounded text-sm">1분</button>
+            <button onclick="updatePeriod('day', this)" class="period-btn px-3 py-1 rounded text-sm">1일</button>
+            <button onclick="updatePeriod('week', this)" class="period-btn px-3 py-1 rounded text-sm">1주</button>
+            <button onclick="updatePeriod('month', this)" class="period-btn px-3 py-1 rounded text-sm">1월</button>
         </div>
-
         <!-- 차트 -->
         <div id="main-chart"></div>
     </section>
@@ -165,6 +166,9 @@
 </main>
 
 <script>
+    let allStocks = []; // 전역 변수 추가
+    let currentStockCode = "005930"; // 기본값 삼성전자
+
     const stocks = [
         {code: '005930', name: '삼성전자', price: 73500, avg: 70000, ratio: 15, change: '+1.2%'},
         {code: '000660', name: 'SK하이닉스', price: 152000, avg: 160000, ratio: 10, change: '-0.8%'},
@@ -196,11 +200,15 @@
         try {
             const response = await fetch('/api/stockList');
             const data = await response.json();
-            renderWatchlist(Array.isArray(data) ? data : []);
+            // 1. 전체 데이터를 전역 변수에 담기
+            allStocks = Array.isArray(data) ? data : []; // 데이터를 전역 변수에 보관(2026_0629)
+
+            // 2. 초기 리스트 렌더링
+            renderWatchlist(allStocks); // 초기에는 전체 출력(2026_0629)
         } catch (error) {
             console.error('에러:', error);
         }
-    }
+    }//
 
     /* * [Watchlist UI 렌더링] (2026_0626에 추가)
      * renderWatchlist: API로 받은 stockList 배열을 순회하며 HTML 요소를 생성하여 #watchlist 영역에 삽입.
@@ -228,30 +236,19 @@
 
             // 리스트 클릭 시 차트 타이틀 변경 예시 (필요 시)
             div.onclick = () => {
+                currentStockCode = code; // 전역 변수 업데이트
                 document.getElementById('stock-title').innerText = name;
 
-                // [추가] 리스트 클릭 시 차트 데이터를 서버에서 새로 가져오기 (2026_0629)
-                // period는 현재 선택된 버튼 값을 사용하거나, 기본값 '1D'를 넣습니다.
-                fetchChartData(code, '1D');
+                // 현재 활성화된 버튼의 period 값을 가져오거나 기본값 'day' 사용
+                const activeBtn = document.querySelector('.period-btn.active');
+                const period = activeBtn ? activeBtn.innerText : 'day';
+
+                fetchChartData(code, period);
             };
 
             wl.appendChild(div);
         });
     }
-
-    /* * [데이터 생성] - (기존)
-         * generateCandleData: 차트에 사용할 랜덤 봉 데이터를 생성합니다.
-         * days 인자만큼의 날짜 데이터를 만들어 반환합니다.
-         */
-    <%--function generateCandleData(days) {--%>
-    <%--    let data = [], price = 70000;--%>
-    <%--    for (let i = 0; i < days; i++) {--%>
-    <%--        let change = (Math.random() - 0.5) * 4000;--%>
-    <%--        data.push({x: `2026-06-${i + 1}`, y: [price, price + 2000, price - 2000, price + change]});--%>
-    <%--        price += change;--%>
-    <%--    }--%>
-    <%--    return data;--%>
-    <%--}--%>
 
     // [추가] fetch를 사용하는 새로운 차트 데이터 로드 함수 (2026_0629 생성)
     async function fetchChartData(stockCode, period) {
@@ -295,7 +292,12 @@
          */
     const chart = new ApexCharts(document.querySelector("#main-chart"), {
         series: [{data: []}],
-        chart: {type: 'candlestick', height: '100%', toolbar: {show: false}},
+        chart: {
+            type: 'candlestick',
+            height: '100%',
+            zoom: { enabled: true },
+            pan: { enabled: true } // 마우스 드래그로 과거 데이터 탐색 가능
+        },
         plotOptions: {candlestick: {colors: {upward: '#ef4444', downward: '#3b82f6'}}},
         xaxis: {labels: {style: {colors: '#9CA3AF'}}},
         yaxis: {labels: {style: {colors: '#9CA3AF'}}}
@@ -316,20 +318,31 @@
      */
     function updatePeriod(period, button) {
 
-        document.querySelectorAll('.period-btn').forEach(btn => {
-            btn.classList.remove('active');
-        });
-
+        // 1. UI 활성화 상태 변경
+        document.querySelectorAll('.period-btn').forEach(btn => btn.classList.remove('active'));
         button.classList.add('active');
 
-        const days =
-            period === '1D' ? 30 :
-                period === '1W' ? 90 :
-                    period === '1M' ? 180 :
-                        365;
-
-        chart.updateSeries([{data: generateCandleData(days)}]);
+        // 서버에 파라미터 전달 (예: 'day')
+        fetchChartData(currentStockCode, period);
     }
+
+
+    // 검색창 입력 시 호출될 함수(2026_0629)
+    function filterWatchlist(keyword) {
+        const searchKeyword = keyword.toLowerCase().trim();
+
+        // 코드 혹은 이름이 포함된 항목만 필터링
+        const filtered = allStocks.filter(s =>
+            (s.stck_shrn_iscd && s.stck_shrn_iscd.includes(searchKeyword)) ||
+            (s.hts_kor_isnm && s.hts_kor_isnm.toLowerCase().includes(searchKeyword))
+        );
+
+        renderWatchlist(filtered); // 필터링된 데이터만 다시 그리기
+    }//검색창 검색어 입력 시 호출
+
+
+
+
 
     /* * [페이지 라이프사이클 관리]
          * DOMContentLoaded: HTML 문서가 모두 로드된 직후 실행되는 초기화 블록입니다.
@@ -349,7 +362,7 @@
 
 
         // 5초마다 데이터 갱신
-        setInterval(fetchAndRender, 5000);
+        setInterval(fetchAndRender, 50000);
     });
 
 

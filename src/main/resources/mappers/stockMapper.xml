@@ -14,16 +14,17 @@
 
 
     <!-- 2. BlackRabbit 메인페이지 - 일별차트 (2026_0629에 추가) -->
-    <select id="getDailyStockChartData" parameterType="String" resultType="stockDailyDTO">
-        SELECT stck_bsop_date,
-               stck_oprc,
-               stck_hgpr,
-               stck_lwpr,
-               stck_clpr
-        FROM HC_stock_daily2
+    <select id="getDailyStockChartData" resultType="StockDailyDTO">
+        SELECT stck_bsop_date, stck_oprc, stck_hgpr, stck_lwpr, stck_clpr
+        FROM
+        <choose>
+            <when test="period == 'minute'"> HC_stock_minute2 </when>
+            <when test="period == 'week'"> HC_stock_weekly2 </when>
+            <when test="period == 'month'"> HC_stock_monthly2 </when>
+            <otherwise> HC_stock_daily2 </otherwise>
+        </choose>
         WHERE stck_shrn_iscd = #{code}
         ORDER BY stck_bsop_date ASC
-
     </select>
 
 </mapper>
