@@ -3,6 +3,8 @@ import requests
 import json
 from dotenv import load_dotenv
 
+from database import patchSingleRow
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 load_dotenv(dotenv_path=os.path.join(BASE_DIR, "../dataset/config/.env"), override=True)
 
@@ -11,6 +13,9 @@ KIS_APP_SECRET = os.getenv("KIS_APP_SECRET")
 KIS_URL = os.getenv("KIS_URL")
 KIS_USER_ID = os.getenv("KIS_USER_ID")
 
+
+
+## =========== token 생성 api =================
 def getKisToken():
   """
   1. api 호출에 필요한 token 생성
