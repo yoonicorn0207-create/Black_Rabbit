@@ -5,8 +5,13 @@
         value="true"/> </settings> -->
     <typeAliases>
         <!-- 예시 StockDTO 매퍼에서 그냥 'stockDTO'라고 짧게 부를 수 있게 설정  (2026_0626에 추가) -->
+
         <typeAlias alias="stockDTO"
                    type="com.blackrabbit.stock.StockDTO"/>
+
+        <!-- 예시 StockDTO 매퍼에서 그냥 'stockDailyDTO'라고 짧게 부를 수 있게 설정  (2026_0629에 추가) -->
+        <typeAlias alias="stockDailyDTO"
+                   type="com.blackrabbit.stock.StockDailyDTO"/>
 
     </typeAliases>
 
