@@ -22,15 +22,18 @@ def initialize_all_tables():
         """,
         "HC_stock_minute1": """
             CREATE TABLE IF NOT EXISTS HC_stock_minute1 (
-                id             BIGINT AUTO_INCREMENT PRIMARY KEY,
-                ticker         VARCHAR(10) NOT NULL COMMENT '종목코드 (예: 005930)',
-                stck_bsop_date DATE NOT NULL COMMENT '영업 일자 (YYYY-MM-DD)',
-                stck_prpr      INT NOT NULL COMMENT '당일 최종 종가 (주식 현재가)',
-                prdy_vrss      INT NOT NULL COMMENT '전일 대비 등락폭',
-                prdy_ctrt      DECIMAL(5, 2) NOT NULL COMMENT '전일 대비 등락률',
-                acml_vol       BIGINT NOT NULL COMMENT '당일 누적 거래량',
-                acml_tr_pbmn   BIGINT NOT NULL COMMENT '당일 누적 거래대금',
-                created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '시스템 데이터 적재 시간',
+                id                BIGINT AUTO_INCREMENT PRIMARY KEY,
+                ticker            VARCHAR(10) NOT NULL COMMENT '종목코드',
+                stck_bsop_date    DATE NOT NULL COMMENT '영업 일자 (YYYY-MM-DD)',
+                stck_prpr         INT NOT NULL COMMENT '주식 현재가',
+                prdy_vrss         INT NOT NULL COMMENT '전일 대비 변동폭',
+                prdy_vrss_sign    VARCHAR(1) COMMENT '전일 대비 부호',
+                prdy_ctrt         DECIMAL(10, 2) NOT NULL COMMENT '전일 대비율',
+                stck_prdy_clpr    INT NOT NULL COMMENT '전일 대비 종가',
+                acml_vol          BIGINT NOT NULL COMMENT '누적 거래량',
+                acml_tr_pbmn      BIGINT NOT NULL COMMENT '누적 거래대금',
+                hts_kor_isnm      VARCHAR(40) COMMENT '한글 종목명',
+                created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '시스템 데이터 적재 시간',
                 UNIQUE KEY uq_ticker_date (ticker, stck_bsop_date)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='한국투자증권 output1 기준 당일 마감 일별 요약 테이블';
         """,
