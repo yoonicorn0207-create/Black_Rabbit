@@ -13,6 +13,9 @@
         <typeAlias alias="stockDailyDTO"
                    type="com.blackrabbit.stock.StockDailyDTO"/>
 
+        <typeAlias alias="signupDTO"
+                   type="com.blackrabbit.signup.SignupDTO"/>
+
     </typeAliases>
 
 
