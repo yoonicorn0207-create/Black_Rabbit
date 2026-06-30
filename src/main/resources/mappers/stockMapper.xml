@@ -18,7 +18,6 @@
         SELECT stck_bsop_date, stck_oprc, stck_hgpr, stck_lwpr, stck_clpr
         FROM
         <choose>
-            <when test="period == 'minute'"> HC_stock_minute2 </when>
             <when test="period == 'week'"> HC_stock_weekly2 </when>
             <when test="period == 'month'"> HC_stock_monthly2 </when>
             <otherwise> HC_stock_daily2 </otherwise>
@@ -27,4 +26,28 @@
         ORDER BY stck_bsop_date ASC
     </select>
 
+    <!-- 3. BlackRabbit 메인페이지 - 분봉/ 시간봉(0630) -->
+    <select id="getMinHourChart" resultType="StockDailyDTO">
+        SELECT * FROM (
+            SELECT CONCAT(stck_bsop_date, ' ', stck_cntg_hour) AS stck_bsop_date,
+                stck_cntg_hour,
+                stck_oprc,
+                stck_hgpr,
+                stck_lwpr,
+                stck_prpr AS stck_clpr
+            FROM
+            <choose>
+                <when test="period == 'minute'"> HC_stock_minute2 </when>
+                <otherwise> HC_stock_hourly </otherwise>
+            </choose>
+            WHERE ticker = #{code}
+            ORDER BY stck_bsop_date DESC, stck_cntg_hour DESC
+            limit
+            <choose>
+                <when test="period == 'minute'"> 100 </when>
+                <otherwise> 50 </otherwise>
+            </choose>
+        ) AS subquery
+        ORDER BY stck_bsop_date ASC, stck_cntg_hour ASC
+    </select>
 </mapper>

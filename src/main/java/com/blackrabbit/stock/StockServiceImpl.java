@@ -31,4 +31,11 @@ public class StockServiceImpl implements StockService {
     }//BlackRabbit 메인페이지 - 일별차트
 
 
+    /* 3. BlackRabbit 메인페이지 - 분봉/ 시간봉 (2026_0630)*/
+    @Override
+    public List<StockDailyDTO> getMinHourChart(String code, String period){
+       List<StockDailyDTO> res =  stockMapper.getMinHourChart(code, period);
+
+       return res;
+    }
 }// StockServiceImpl
