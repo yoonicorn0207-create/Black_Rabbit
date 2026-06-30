@@ -16,6 +16,9 @@
         <typeAlias alias="signupDTO"
                    type="com.blackrabbit.signup.SignupDTO"/>
 
+        <typeAlias alias="signupDTO"
+                   type="com.blackrabbit.common.dto.ResultDTO"/>
+
     </typeAliases>
 
 
