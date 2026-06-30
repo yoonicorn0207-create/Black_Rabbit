@@ -12,6 +12,7 @@ public interface StockService {
     /* 2. BlackRabbit 메인페이지 - 일별차트 (2026_0629) */
     List<StockDailyDTO> getDailyStockChartData(String code, String period);
 
-
+    /* 3. BlackRabbit 메인페이지 - 분봉/ 시간봉 (2026_0630) */
+    List<StockDailyDTO> getMinHourChart(String code, String period);
 
 }// StockService

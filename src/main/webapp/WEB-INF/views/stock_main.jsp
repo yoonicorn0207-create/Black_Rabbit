@@ -65,7 +65,7 @@
 
         /* 일본 주봉 active 클래스 추가 */
         .period-btn {
-            width: 50px;
+            width: 60px;
             background-color: #1f2937;
             color: white;
             transition: all 0.15s ease;
@@ -134,6 +134,7 @@
         <div class="flex gap-2 mb-2 items-center">
             <span class="text-base font-bold text-white mr-2" id="stock-title">삼성전자</span>
             <button onclick="updatePeriod('minute', this)" class="period-btn active px-3 py-1 rounded text-sm">1분</button>
+            <button onclick="updatePeriod('hour', this)" class="period-btn px-3 py-1 rounded text-sm">1시간</button>
             <button onclick="updatePeriod('day', this)" class="period-btn px-3 py-1 rounded text-sm">1일</button>
             <button onclick="updatePeriod('week', this)" class="period-btn px-3 py-1 rounded text-sm">1주</button>
             <button onclick="updatePeriod('month', this)" class="period-btn px-3 py-1 rounded text-sm">1월</button>
@@ -254,7 +255,8 @@
     async function fetchChartData(stockCode, period) {
         try {
             // 서버의 컨트롤러로 요청 전송
-            const response = await fetch(`/api/chartData?code=${stockCode}&period=${period}`);
+            const url = period === 'minute' || period === 'hour' ? "minHourChartData" : "chartData";
+            const response = await fetch(`/api/${url}?code=${stockCode}&period=${period}`);
 
             if (!response.ok) throw new Error('서버 데이터 응답 실패');
 
@@ -262,7 +264,31 @@
             console.log("받아온 데이터:", data); // F12 콘솔에서 확인용
 
             // ApexCharts 차트 객체(chart)의 시리즈 데이터 업데이트
-            chart.updateSeries([{data: data}]); // 서버에서 받은 데이터로 업데이트
+            // 가격 등을 차드에 반영하기 위해 가격 등을 숫자로 명시적 변환 진행
+            const formattedData = data.map(item => {
+                      return { x: item.x, // 날짜
+                        y: [
+                            parseFloat(item.y[0]), // 시가
+                            parseFloat(item.y[1]), // 고가
+                            parseFloat(item.y[2]), // 저가
+                            parseFloat(item.y[3])  // 종가(또는 현재가)
+                        ]}
+                    });
+            chart.updateSeries([{data: formattedData}]); // 서버에서 받은 데이터로 업데이트
+
+            // 종목마다 차트 금액 표시선 변경되도록 updateOption 추가
+            chart.updateOptions({
+                series: [{ data: formattedData }],
+                yaxis: {
+                    // 기존 스타일 유지
+                    labels: {
+                        style: { colors: '#9CA3AF' },
+                        formatter: (val) => val.toLocaleString()
+                    },
+                    forceNiceScale: true,
+                    decimalsInFloat: 0
+                }
+            }, true, true, true);
 
             // 종목명 업데이트 (선택 사항)
             // document.getElementById('stock-title').innerText = stockCode;
@@ -300,9 +326,18 @@
         },
         plotOptions: {candlestick: {colors: {upward: '#ef4444', downward: '#3b82f6'}}},
         xaxis: {labels: {style: {colors: '#9CA3AF'}}},
-        yaxis: {labels: {style: {colors: '#9CA3AF'}}}
+        yaxis: {
+            labels: {
+                style: { colors: '#9CA3AF' },
+                formatter: function (val) {
+                    return val.toLocaleString(); // 가격을 1,000 단위로 표시
+                }
+            },
+            forceNiceScale: true, // [추가] 가격 범위에 맞게 눈금 자동 조정
+            decimalsInFloat: 0    // [추가] 정수 가격이면 소수점 제거
+        }
     });
-    chart.render();
+
 
     const donutChart = new ApexCharts(document.querySelector("#donut-chart"), {
         series: stocks.map(s => s.ratio),
