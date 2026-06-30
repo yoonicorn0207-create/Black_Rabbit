@@ -28,14 +28,27 @@ public class StockServiceImpl implements StockService {
         List<StockDailyDTO> stockDaily_chart = stockMapper.getDailyStockChartData(code, period);
 
         return stockDaily_chart;
-    }//BlackRabbit 메인페이지 - 일별차트
+    }//BlackRabbit 메인페이지 - 일별/주별/월별차트
 
 
     /* 3. BlackRabbit 메인페이지 - 분봉/ 시간봉 (2026_0630)*/
     @Override
-    public List<StockDailyDTO> getMinHourChart(String code, String period){
-       List<StockDailyDTO> res =  stockMapper.getMinHourChart(code, period);
+    public List<StockDailyDTO> getMinHourChart(String code, String period) {
+        List<StockDailyDTO> res = stockMapper.getMinHourChart(code, period);
 
-       return res;
+        return res;
     }
+
+    /* 4. BlackRabbit 메인페이지 - 회원 보유종목 리스트  (2026_0630) By.yoonicorn */
+    @Override
+    public List<UserHoldingStockDTO> getMyHoldings(String userId) {
+
+        List<UserHoldingStockDTO> userHoldingStock = stockMapper.getUserHoldings(userId);
+
+        return userHoldingStock;
+    }// BlackRabbit 메인페이지 - 회원 보유종목 리스트
+
+
+
+
 }// StockServiceImpl

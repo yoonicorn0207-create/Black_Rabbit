@@ -15,5 +15,7 @@ public interface StockMapper {
     /* 3. BlackRabbit 메인페이지 - 분봉/시간봉 (2026_0630에 추가) */
     List<StockDailyDTO> getMinHourChart(@Param("code") String code, @Param("period") String period);
 
+    /* 4. BlackRabbit 메인페이지 - 회원 보유종목 리스트  (2026_0630) */
+    List<UserHoldingStockDTO> getUserHoldings(String userId);
 
 }// StockMapper

@@ -18,9 +18,9 @@
         SELECT stck_bsop_date, stck_oprc, stck_hgpr, stck_lwpr, stck_clpr
         FROM
         <choose>
-            <when test="period == 'week'"> HC_stock_weekly2 </when>
-            <when test="period == 'month'"> HC_stock_monthly2 </when>
-            <otherwise> HC_stock_daily2 </otherwise>
+            <when test="period == 'week'">HC_stock_weekly2</when>
+            <when test="period == 'month'">HC_stock_monthly2</when>
+            <otherwise>HC_stock_daily2</otherwise>
         </choose>
         WHERE stck_shrn_iscd = #{code}
         ORDER BY stck_bsop_date ASC
@@ -29,25 +29,42 @@
     <!-- 3. BlackRabbit 메인페이지 - 분봉/ 시간봉(0630) -->
     <select id="getMinHourChart" resultType="StockDailyDTO">
         SELECT * FROM (
-            SELECT CONCAT(stck_bsop_date, ' ', stck_cntg_hour) AS stck_bsop_date,
-                stck_cntg_hour,
-                stck_oprc,
-                stck_hgpr,
-                stck_lwpr,
-                stck_prpr AS stck_clpr
-            FROM
-            <choose>
-                <when test="period == 'minute'"> HC_stock_minute2 </when>
-                <otherwise> HC_stock_hourly </otherwise>
-            </choose>
-            WHERE ticker = #{code}
-            ORDER BY stck_bsop_date DESC, stck_cntg_hour DESC
-            limit
-            <choose>
-                <when test="period == 'minute'"> 100 </when>
-                <otherwise> 50 </otherwise>
-            </choose>
+        SELECT CONCAT(stck_bsop_date, ' ', stck_cntg_hour) AS stck_bsop_date,
+        stck_cntg_hour,
+        stck_oprc,
+        stck_hgpr,
+        stck_lwpr,
+        stck_prpr AS stck_clpr
+        FROM
+        <choose>
+            <when test="period == 'minute'">HC_stock_minute2</when>
+            <otherwise>HC_stock_hourly</otherwise>
+        </choose>
+        WHERE ticker = #{code}
+        ORDER BY stck_bsop_date DESC, stck_cntg_hour DESC
+        limit
+        <choose>
+            <when test="period == 'minute'">100</when>
+            <otherwise>50</otherwise>
+        </choose>
         ) AS subquery
         ORDER BY stck_bsop_date ASC, stck_cntg_hour ASC
     </select>
+
+    <!--  4. BlackRabbit 메인페이지 - 회원 보유종목 리스트  (2026_0630) By.yoonicorn -->
+    <select id="getUserHoldings" resultType="userHoldingStockDTO">
+        SELECT
+            h.stck_shrn_iscd,                        -- 종목 코드
+            d.hts_kor_isnm AS stock_name,            -- 종목명 (JOIN)
+            h.total_quantity,                        -- 보유 수량
+            h.avg_buy_price,                         -- 평균 매수 단가
+            d.stck_prpr AS current_price,            -- 현재가 (JOIN)
+
+            -- 실시간 수익률 계산: (현재가 - 평단가) / 평단가 * 100
+            ROUND(((d.stck_prpr - h.avg_buy_price) / h.avg_buy_price) * 100, 2) AS profit_rate
+        FROM HC_user_holdings h
+                 JOIN HC_stock_daily1 d ON h.stck_shrn_iscd = d.stck_shrn_iscd
+        WHERE h.user_id = #{userId}
+    </select>
+
 </mapper>
