@@ -117,6 +117,23 @@ def initialize_all_tables():
             ) ENGINE=InnoDB
             DEFAULT CHARSET=utf8mb4
             COMMENT='Refresh Token';
+        """,
+        "HC_user_holdings": """
+            CREATE TABLE HC_user_holdings (
+                holding_id BIGINT AUTO_INCREMENT PRIMARY KEY, 
+                user_id VARCHAR(50) NOT NULL,                 
+                stck_shrn_iscd VARCHAR(10) NOT NULL,          
+                total_quantity INT DEFAULT 0,                 
+                total_buy_amount DECIMAL(19, 4) DEFAULT 0,    
+                avg_buy_price DECIMAL(19, 4) DEFAULT 0,       
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, 
+                -- CONSTRAINT 앞에 쉼표(,)가 있어야 합니다.
+                CONSTRAINT fk_user_holdings_user 
+                    FOREIGN KEY (user_id) REFERENCES HC_user(id) 
+                    ON DELETE CASCADE
+            )ENGINE=InnoDB
+            DEFAULT CHARSET=utf8mb4
+            COMMENT='HC_user_holdings';; -- 마지막에 닫는 괄호와 세미콜론 필수                
         """
     }
 
