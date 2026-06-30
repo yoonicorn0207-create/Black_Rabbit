@@ -133,7 +133,8 @@
         <!-- 선택 종목명 및 봉 선택-->
         <div class="flex gap-2 mb-2 items-center">
             <span class="text-base font-bold text-white mr-2" id="stock-title">삼성전자</span>
-            <button onclick="updatePeriod('minute', this)" class="period-btn active px-3 py-1 rounded text-sm">1분</button>
+            <button onclick="updatePeriod('minute', this)" class="period-btn active px-3 py-1 rounded text-sm">1분
+            </button>
             <button onclick="updatePeriod('hour', this)" class="period-btn px-3 py-1 rounded text-sm">1시간</button>
             <button onclick="updatePeriod('day', this)" class="period-btn px-3 py-1 rounded text-sm">1일</button>
             <button onclick="updatePeriod('week', this)" class="period-btn px-3 py-1 rounded text-sm">1주</button>
@@ -170,28 +171,28 @@
     let allStocks = []; // 전역 변수 추가
     let currentStockCode = "005930"; // 기본값 삼성전자
 
-    const stocks = [
-        {code: '005930', name: '삼성전자', price: 73500, avg: 70000, ratio: 15, change: '+1.2%'},
-        {code: '000660', name: 'SK하이닉스', price: 152000, avg: 160000, ratio: 10, change: '-0.8%'},
-        {code: '373220', name: 'LG에너지솔루션', price: 380000, avg: 390000, ratio: 8, change: '+1.2%'},
-        {code: '207940', name: '삼성바이오로직스', price: 820000, avg: 800000, ratio: 7, change: '-0.8%'},
-        {code: '005380', name: '현대차', price: 240000, avg: 230000, ratio: 7, change: '+1.2%'},
-        {code: '000270', name: '기아', price: 110000, avg: 105000, ratio: 6, change: '-0.8%'},
-        {code: '068270', name: '셀트리온', price: 180000, avg: 185000, ratio: 5, change: '+1.2%'},
-        {code: '005490', name: 'POSCO홀딩스', price: 420000, avg: 410000, ratio: 5, change: '-0.8%'},
-        {code: '035420', name: 'NAVER', price: 185000, avg: 180000, ratio: 5, change: '-0.8%'},
-        {code: '028260', name: '삼성물산', price: 145000, avg: 140000, ratio: 4, change: '+1.2%'},
-        {code: '105560', name: 'KB금융', price: 75000, avg: 72000, ratio: 4, change: '-0.8%'},
-        {code: '012330', name: '현대모비스', price: 230000, avg: 225000, ratio: 4, change: '+1.2%'},
-        {code: '051910', name: 'LG화학', price: 350000, avg: 360000, ratio: 4, change: '-0.8%'},
-        {code: '035720', name: '카카오', price: 45000, avg: 48000, ratio: 3, change: '+1.2%'},
-        {code: '086790', name: '하나금융지주', price: 60000, avg: 58000, ratio: 3, change: '-0.8%'},
-        {code: '032830', name: '삼성생명', price: 95000, avg: 92000, ratio: 3, change: '+1.2%'},
-        {code: '055550', name: '신한지주', price: 48000, avg: 47000, ratio: 2, change: '-0.8%'},
-        {code: '096770', name: 'SK이노베이션', price: 110000, avg: 120000, ratio: 2, change: '+1.2%'},
-        {code: '033780', name: 'KT&G', price: 92000, avg: 90000, ratio: 2, change: '-0.8%'},
-        {code: '018260', name: '삼성에스디에스', price: 160000, avg: 155000, ratio: 1, change: '+1.2%'}
-    ];
+    // const stocks = [
+    //     {code: '005930', name: '삼성전자', price: 73500, avg: 70000, ratio: 15, change: '+1.2%'},
+    //     {code: '000660', name: 'SK하이닉스', price: 152000, avg: 160000, ratio: 10, change: '-0.8%'},
+    //     {code: '373220', name: 'LG에너지솔루션', price: 380000, avg: 390000, ratio: 8, change: '+1.2%'},
+    //     {code: '207940', name: '삼성바이오로직스', price: 820000, avg: 800000, ratio: 7, change: '-0.8%'},
+    //     {code: '005380', name: '현대차', price: 240000, avg: 230000, ratio: 7, change: '+1.2%'},
+    //     {code: '000270', name: '기아', price: 110000, avg: 105000, ratio: 6, change: '-0.8%'},
+    //     {code: '068270', name: '셀트리온', price: 180000, avg: 185000, ratio: 5, change: '+1.2%'},
+    //     {code: '005490', name: 'POSCO홀딩스', price: 420000, avg: 410000, ratio: 5, change: '-0.8%'},
+    //     {code: '035420', name: 'NAVER', price: 185000, avg: 180000, ratio: 5, change: '-0.8%'},
+    //     {code: '028260', name: '삼성물산', price: 145000, avg: 140000, ratio: 4, change: '+1.2%'},
+    //     {code: '105560', name: 'KB금융', price: 75000, avg: 72000, ratio: 4, change: '-0.8%'},
+    //     {code: '012330', name: '현대모비스', price: 230000, avg: 225000, ratio: 4, change: '+1.2%'},
+    //     {code: '051910', name: 'LG화학', price: 350000, avg: 360000, ratio: 4, change: '-0.8%'},
+    //     {code: '035720', name: '카카오', price: 45000, avg: 48000, ratio: 3, change: '+1.2%'},
+    //     {code: '086790', name: '하나금융지주', price: 60000, avg: 58000, ratio: 3, change: '-0.8%'},
+    //     {code: '032830', name: '삼성생명', price: 95000, avg: 92000, ratio: 3, change: '+1.2%'},
+    //     {code: '055550', name: '신한지주', price: 48000, avg: 47000, ratio: 2, change: '-0.8%'},
+    //     {code: '096770', name: 'SK이노베이션', price: 110000, avg: 120000, ratio: 2, change: '+1.2%'},
+    //     {code: '033780', name: 'KT&G', price: 92000, avg: 90000, ratio: 2, change: '-0.8%'},
+    //     {code: '018260', name: '삼성에스디에스', price: 160000, avg: 155000, ratio: 1, change: '+1.2%'}
+    // ];
 
     /* * [API 통신] (2026_0626에 추가)
          * fetchAndRender: 서버의 /api/stockList 경로에서 종목 데이터를 가져와
@@ -266,23 +267,25 @@
             // ApexCharts 차트 객체(chart)의 시리즈 데이터 업데이트
             // 가격 등을 차드에 반영하기 위해 가격 등을 숫자로 명시적 변환 진행
             const formattedData = data.map(item => {
-                      return { x: item.x, // 날짜
-                        y: [
-                            parseFloat(item.y[0]), // 시가
-                            parseFloat(item.y[1]), // 고가
-                            parseFloat(item.y[2]), // 저가
-                            parseFloat(item.y[3])  // 종가(또는 현재가)
-                        ]}
-                    });
+                return {
+                    x: item.x, // 날짜
+                    y: [
+                        parseFloat(item.y[0]), // 시가
+                        parseFloat(item.y[1]), // 고가
+                        parseFloat(item.y[2]), // 저가
+                        parseFloat(item.y[3])  // 종가(또는 현재가)
+                    ]
+                }
+            });
             chart.updateSeries([{data: formattedData}]); // 서버에서 받은 데이터로 업데이트
 
             // 종목마다 차트 금액 표시선 변경되도록 updateOption 추가
             chart.updateOptions({
-                series: [{ data: formattedData }],
+                series: [{data: formattedData}],
                 yaxis: {
                     // 기존 스타일 유지
                     labels: {
-                        style: { colors: '#9CA3AF' },
+                        style: {colors: '#9CA3AF'},
                         formatter: (val) => val.toLocaleString()
                     },
                     forceNiceScale: true,
@@ -299,19 +302,55 @@
     }
 
 
-    /* * [보유 종목 UI 렌더링]
-     * renderHoldings: stocks 배열 정보를 바탕으로
-     * #holding-list 영역에 보유 주식 현황 표를 생성합니다.
-     */
-    function renderHoldings() {
-        const list = document.getElementById('holding-list');
-        list.innerHTML = `<div class="grid grid-cols-4 gap-1 text-gray-500 border-b border-gray-800 pb-1 mb-1"><span>종목</span><span>평단</span><span>현재</span><span>수익</span></div>`;
-        stocks.forEach(s => {
-            const profit = ((s.price - s.avg) / s.avg * 100).toFixed(1);
-            const color = profit >= 0 ? 'text-up' : 'text-down';
-            list.innerHTML += `<div class="grid grid-cols-4 gap-1 items-center"><span class="font-bold text-white truncate">${s.name}</span><span>${s.avg.toLocaleString()}</span><span>${s.price.toLocaleString()}</span><span class="${color}">${profit}%</span></div>`;
-        });
-    }
+    /* * [수정된 보유 종목 UI 렌더링] (2026_0630)
+       * 서버에서 API(/api/myHoldings)를 호출해 실제 데이터를 가져와 그립니다.
+       */
+    async function renderHoldings() {
+        try {
+            const response = await fetch('/api/myHoldings');
+            if (!response.ok) throw new Error('데이터 로드 실패');
+
+            const data = await response.json();
+
+            const list = document.getElementById('holding-list');
+            list.innerHTML = `<div class="grid grid-cols-4 gap-1 text-gray-500 border-b border-gray-800 pb-1 mb-1 text-[10px]">
+                            <span>종목</span><span>평단</span><span>현재</span><span>수익</span>
+                          </div>`;
+
+            // 1. 도넛 차트 데이터 준비
+            const chartSeries = [];
+            const chartLabels = [];
+
+            data.forEach(s => {
+                const profit = s.profit_rate;
+                const color = profit >= 0 ? 'text-up' : 'text-down';
+
+                // 리스트 업데이트
+                list.innerHTML += `
+            <div class="grid grid-cols-4 gap-1 items-center text-[11px] py-1 border-b border-gray-900">
+                <span class="font-bold text-white truncate">${s.stock_name}</span>
+                <span class="font-mono">${s.avg_buy_price.toLocaleString()}</span>
+                <span class="font-mono">${s.current_price.toLocaleString()}</span>
+                <span class="${color} font-bold">${profit}%</span>
+            </div>`;
+
+                // 2. 도넛 차트용 데이터 배열 채우기
+                // 예: (현재가 * 수량)으로 비중 계산
+                const evaluationAmount = s.current_price * s.total_quantity;
+                chartSeries.push(evaluationAmount);
+                chartLabels.push(s.stock_name);
+            });
+
+            // 3. 도넛 차트 업데이트 (ApexCharts 제공 메서드)
+            donutChart.updateOptions({
+                series: chartSeries,
+                labels: chartLabels
+            });
+
+        } catch (error) {
+            console.error("보유 종목 로딩 실패:", error);
+        }
+    }//renderHoldings(보유종목 리스트)
 
     /* * [초기화 및 차트 설정]
          * 페이지 로드 시 차트 객체를 선언하고 렌더링합니다.
@@ -321,14 +360,14 @@
         chart: {
             type: 'candlestick',
             height: '100%',
-            zoom: { enabled: true },
-            pan: { enabled: true } // 마우스 드래그로 과거 데이터 탐색 가능
+            zoom: {enabled: true},
+            pan: {enabled: true} // 마우스 드래그로 과거 데이터 탐색 가능
         },
         plotOptions: {candlestick: {colors: {upward: '#ef4444', downward: '#3b82f6'}}},
         xaxis: {labels: {style: {colors: '#9CA3AF'}}},
         yaxis: {
             labels: {
-                style: { colors: '#9CA3AF' },
+                style: {colors: '#9CA3AF'},
                 formatter: function (val) {
                     return val.toLocaleString(); // 가격을 1,000 단위로 표시
                 }
@@ -338,10 +377,10 @@
         }
     });
 
-
+    //보유종목 도넛형 차트(2026_0630)
     const donutChart = new ApexCharts(document.querySelector("#donut-chart"), {
-        series: stocks.map(s => s.ratio),
-        labels: stocks.map(s => s.name),
+        series: [], // 빈 배열로 시작
+        labels: [],
         chart: {type: 'donut', height: 160},
         legend: {show: false}
     });
@@ -374,9 +413,6 @@
 
         renderWatchlist(filtered); // 필터링된 데이터만 다시 그리기
     }//검색창 검색어 입력 시 호출
-
-
-
 
 
     /* * [페이지 라이프사이클 관리]
