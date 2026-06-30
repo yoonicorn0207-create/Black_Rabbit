@@ -6,12 +6,11 @@ import time
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 
-# 1. 설정: .env 파일 로드
+# 1. 설정
 current_dir = os.path.dirname(os.path.abspath(__file__)) if '__file__' in locals() else os.getcwd()
 dotenv_path = os.path.abspath(os.path.join(current_dir, "..", "dataset", "config", ".env"))
 load_dotenv(dotenv_path=dotenv_path, override=True)
 
-# 환경 변수 가져오기
 KIS_APP_KEY = os.getenv("KIS_APP_KEY")
 KIS_APP_SECRET = os.getenv("KIS_APP_SECRET")
 KIS_URL = os.getenv("KIS_URL")
@@ -32,18 +31,27 @@ def getKisToken():
     return response.json().get("access_token")
 
 def get_stock_list():
-    """DB에서 ACTIVE 상태인 종목 리스트 가져오기"""
     conn = get_db_connection()
     try:
         with conn.cursor() as cursor:
-            sql = "SELECT ticker FROM HC_stock_master WHERE status = 'ACTIVE'"
-            cursor.execute(sql)
+            cursor.execute("SELECT ticker FROM HC_stock_master WHERE status = 'ACTIVE'")
             return [row['ticker'] for row in cursor.fetchall()]
     finally:
         conn.close()
 
+def get_last_date(table_name, stock_code):
+    """DB에서 해당 종목의 마지막 수집 날짜 조회"""
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cursor:
+            sql = f"SELECT MAX(stck_bsop_date) as last_date FROM {table_name} WHERE stck_shrn_iscd = %s"
+            cursor.execute(sql, (stock_code,))
+            result = cursor.fetchone()
+            return result['last_date'] if result and result['last_date'] else None
+    finally:
+        conn.close()
+
 def save_to_mysql(table_name, data_dict):
-    """데이터 저장 (UPSERT)"""
     conn = get_db_connection()
     try:
         with conn.cursor() as cursor:
@@ -58,16 +66,25 @@ def save_to_mysql(table_name, data_dict):
         conn.close()
 
 def fetch_and_store(stock_code, table1, table2, period_code):
-    """일봉/주봉/월봉 구분 수집 함수"""
+    last_date_str = get_last_date(table2, stock_code)
+
+    # 마지막 수집 날짜 다음 날부터 수집 시작
+    if last_date_str:
+        start_date = datetime.strptime(last_date_str, "%Y%m%d") + timedelta(days=1)
+    else:
+        start_date = datetime.now() - timedelta(days=730)
+
+    end_date = datetime.now()
+    if start_date > end_date:
+        print(f"    - {period_code} 최신 상태입니다.")
+        return
+
     token = getKisToken()
     headers = {"authorization": f"Bearer {token}", "appkey": KIS_APP_KEY, "appsecret": KIS_APP_SECRET,
                "tr_id": "FHKST03010100", "content-type": "application/json"}
 
-    end_date = datetime.now()
-    start_date = end_date - timedelta(days=730)
     current_end = end_date
-
-    while current_end > start_date:
+    while current_end >= start_date:
         current_start = current_end - timedelta(days=99)
         if current_start < start_date: current_start = start_date
 
@@ -75,8 +92,7 @@ def fetch_and_store(stock_code, table1, table2, period_code):
             "FID_COND_MRKT_DIV_CODE": "J", "FID_INPUT_ISCD": stock_code,
             "FID_INPUT_DATE_1": current_start.strftime("%Y%m%d"),
             "FID_INPUT_DATE_2": current_end.strftime("%Y%m%d"),
-            "FID_PERIOD_DIV_CODE": period_code, # 'D', 'W', 또는 'M'
-            "FID_ORG_ADJ_PRC": "0"
+            "FID_PERIOD_DIV_CODE": period_code, "FID_ORG_ADJ_PRC": "0"
         }
 
         response = requests.get(f"{KIS_URL}/uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice",
@@ -99,15 +115,14 @@ def fetch_and_store(stock_code, table1, table2, period_code):
 
         current_end = current_start - timedelta(days=1)
         time.sleep(0.5)
-    print(f"[{stock_code}] {period_code} 유형 데이터 수집 완료.")
+    print(f"    - {period_code} 수집 완료.")
 
 if __name__ == "__main__":
     stock_codes = get_stock_list()
-    for code in stock_codes:
-        print(f"\n>>> [{code}] 주봉 및 월봉 추가 수집 시작")
+    total = len(stock_codes)
 
-        # 주봉 수집
+    for i, code in enumerate(stock_codes, 1):
+        print(f"[{i}/{total}] [{code}] 업데이트 시작")
         fetch_and_store(code, "HC_stock_weekly1", "HC_stock_weekly2", "W")
-
-        # 월봉 수집
         fetch_and_store(code, "HC_stock_monthly1", "HC_stock_monthly2", "M")
+        time.sleep(0.5)
