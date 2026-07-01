@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.blackrabbit.login.LoginMapper">
+
+  <!-- 로그인: 사용자 존재 여부 확인 -->
+  <select id="loginUser" parameterType="loginDTO" resultType="map">
+    SELECT id, username, password_hash, status, role, last_login_at
+    FROM HC_user
+    WHERE username = #{username}
+  </select>
+
+  <!-- 최근 로그인 시간 업데이트: 로그인 성공 시 진행 -->
+  <update id="updateLastLogin" parameterType="string">
+    UPDATE HC_user
+    SET last_login_at = NOW()
+    WHERE username = #{username}
+  </update>
+
+  <!-- 사용자 계정 휴면 전환 -->
+  <update id="updateStatusToInactive" parameterType="string">
+    UPDATE HC_user
+    SET status = 'INACTIVE'
+    WHERE username = #{username}
+  </update>
+
+  <!-- 토큰 저장/ 업데이트: 로그인 성공 사용자만 -->
+  <insert id="saveOrUpdateRToken" parameterType="map">
+    INSERT INTO HC_refresh_token (user_id, refresh_token_hash, expires_at)
+    VALUES (
+      (SELECT id
+      FROM HC_user
+      WHERE username = #{username}),
+        #{refreshToken},
+        DATE_ADD(NOW(), INTERVAL 7 DAY)
+    )
+    ON DUPLICATE KEY UPDATE
+    refresh_token_hash = #{refreshToken},
+    expires_at = DATE_ADD(NOW(), INTERVAL 7 DAY)
+  </insert>
+
+  <!-- 토큰 조회: db에 refresh 토큰이 있는지 확인  -->
+  <select id="getRToken" parameterType="string" resultType="string">
+    SELECT refresh_token_hash
+    FROM HC_refresh_token
+    WHERE refresh_token_hash = #{refreshToken}
+  </select>
+
+  <!-- 로그아웃: 정상 로그아웃 시 저장된 토큰 삭제 -->
+  <delete id="deleteRToken" parameterType="string">
+    DELETE FROM HC_refresh_token
+    WHERE user_id = (
+      SELECT id
+      FROM HC_user
+      WHERE username = #{username}
+    )
+  </delete>
+</mapper>
