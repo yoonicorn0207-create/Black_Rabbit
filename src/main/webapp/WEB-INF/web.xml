@@ -31,6 +31,11 @@
 	<listener>
 		<listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
 	</listener>
+
+	<!-- httpSession 사용으로 세션 만료 시간 지정, 30분간 클릭 등 없을 시 세션 자동 종료로 로그아웃 처리가 되어야 함. -->
+	<session-config>
+		<session-timeout>30</session-timeout>
+	</session-config>
   
   
 </web-app>

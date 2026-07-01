@@ -26,4 +26,7 @@ public interface LoginMapper {
 
   // 로그아웃- 저장 토큰 삭제
   void deleteRToken(String username);
+
+  // 현재 로그인중이 사용자 아이디 출력
+  String getUserId(int userId);
 }
