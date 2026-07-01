@@ -18,7 +18,10 @@ public interface StockService {
     /* 4. BlackRabbit 메인페이지 - 회원 보유종목 리스트  (2026_0630) By.yoonicorn */
     List<UserHoldingStockDTO> getMyHoldings(String userId);
 
+    /* 5. BlackRabbit 메인페이지 - 주식 매수 (2026_0701 추가) */
+    boolean buyStock(String userId, String stockCode, String stockName, int quantity);
 
-
+    /* 6. BlackRabbit 메인페이지 - 주식 매도 (2026_0701 추가) */
+    boolean sellStock(String userId, String stockCode, int quantity);
 
 }// StockService

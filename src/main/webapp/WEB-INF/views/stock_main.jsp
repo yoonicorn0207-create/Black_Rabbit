@@ -81,6 +81,12 @@
             border: 1px solid #f7df1e;
             font-weight: 500;
         }
+
+        .neon-price {
+            color: #ccff00; /* 형광 연두색 */
+            font-weight: bold;
+            text-shadow: 0 0 5px rgba(204, 255, 0, 0.5);
+        }
     </style>
 </head>
 <body class="h-screen flex flex-col overflow-hidden p-2">
@@ -157,11 +163,18 @@
         <!-- 선택 항목 매수/ 매도 섹션 -->
         <div class="bg-panel p-3 rounded flex-[1]">
             <h3 class="text-xs font-bold mb-2">ORDER</h3>
-            <input type="number" placeholder="수량"
+            <div id="order-info" class="mb-2 text-sm text-gray-400">
+                <span id="order-stock-name" class="font-bold text-white">종목을 선택하세요</span>
+                <span id="order-stock-price" class="ml-2 font-mono neon-price"></span>
+            </div>
+            <input type="number" id="order-quantity" placeholder="수량"
                    class="w-full p-2 bg-black border border-gray-700 rounded mb-2 text-sm">
             <div class="grid grid-cols-2 gap-2">
-                <button class="bg-red-600 py-2 rounded text-sm font-bold text-white">매수</button>
-                <button class="bg-blue-600 py-2 rounded text-sm font-bold text-white">매도</button>
+                <button onclick="executeOrder('buy')" class="bg-red-600 py-2 rounded text-sm font-bold text-white">매수
+                </button>
+                <button onclick="executeOrder('sell')" class="bg-blue-600 py-2 rounded text-sm font-bold text-white">
+                    매도
+                </button>
             </div>
         </div>
     </section>
@@ -170,29 +183,6 @@
 <script>
     let allStocks = []; // 전역 변수 추가
     let currentStockCode = "005930"; // 기본값 삼성전자
-
-    // const stocks = [
-    //     {code: '005930', name: '삼성전자', price: 73500, avg: 70000, ratio: 15, change: '+1.2%'},
-    //     {code: '000660', name: 'SK하이닉스', price: 152000, avg: 160000, ratio: 10, change: '-0.8%'},
-    //     {code: '373220', name: 'LG에너지솔루션', price: 380000, avg: 390000, ratio: 8, change: '+1.2%'},
-    //     {code: '207940', name: '삼성바이오로직스', price: 820000, avg: 800000, ratio: 7, change: '-0.8%'},
-    //     {code: '005380', name: '현대차', price: 240000, avg: 230000, ratio: 7, change: '+1.2%'},
-    //     {code: '000270', name: '기아', price: 110000, avg: 105000, ratio: 6, change: '-0.8%'},
-    //     {code: '068270', name: '셀트리온', price: 180000, avg: 185000, ratio: 5, change: '+1.2%'},
-    //     {code: '005490', name: 'POSCO홀딩스', price: 420000, avg: 410000, ratio: 5, change: '-0.8%'},
-    //     {code: '035420', name: 'NAVER', price: 185000, avg: 180000, ratio: 5, change: '-0.8%'},
-    //     {code: '028260', name: '삼성물산', price: 145000, avg: 140000, ratio: 4, change: '+1.2%'},
-    //     {code: '105560', name: 'KB금융', price: 75000, avg: 72000, ratio: 4, change: '-0.8%'},
-    //     {code: '012330', name: '현대모비스', price: 230000, avg: 225000, ratio: 4, change: '+1.2%'},
-    //     {code: '051910', name: 'LG화학', price: 350000, avg: 360000, ratio: 4, change: '-0.8%'},
-    //     {code: '035720', name: '카카오', price: 45000, avg: 48000, ratio: 3, change: '+1.2%'},
-    //     {code: '086790', name: '하나금융지주', price: 60000, avg: 58000, ratio: 3, change: '-0.8%'},
-    //     {code: '032830', name: '삼성생명', price: 95000, avg: 92000, ratio: 3, change: '+1.2%'},
-    //     {code: '055550', name: '신한지주', price: 48000, avg: 47000, ratio: 2, change: '-0.8%'},
-    //     {code: '096770', name: 'SK이노베이션', price: 110000, avg: 120000, ratio: 2, change: '+1.2%'},
-    //     {code: '033780', name: 'KT&G', price: 92000, avg: 90000, ratio: 2, change: '-0.8%'},
-    //     {code: '018260', name: '삼성에스디에스', price: 160000, avg: 155000, ratio: 1, change: '+1.2%'}
-    // ];
 
     /* * [API 통신] (2026_0626에 추가)
          * fetchAndRender: 서버의 /api/stockList 경로에서 종목 데이터를 가져와
@@ -241,7 +231,11 @@
                 currentStockCode = code; // 전역 변수 업데이트
                 document.getElementById('stock-title').innerText = name;
 
-                // 현재 활성화된 버튼의 period 값을 가져오거나 기본값 'day' 사용
+                // 2. [추가] ORDER 영역에 종목명 및 현재가 표시(2026_0701)
+                document.getElementById('order-stock-name').innerText = name;
+                document.getElementById('order-stock-price').innerText = `₩ ${price}`;
+
+                // 3. 차트 데이터 로드
                 const activeBtn = document.querySelector('.period-btn.active');
                 const period = activeBtn ? activeBtn.innerText : 'day';
 
@@ -313,9 +307,14 @@
             const data = await response.json();
 
             const list = document.getElementById('holding-list');
-            list.innerHTML = `<div class="grid grid-cols-4 gap-1 text-gray-500 border-b border-gray-800 pb-1 mb-1 text-[10px]">
-                            <span>종목</span><span>평단</span><span>현재</span><span>수익</span>
-                          </div>`;
+            // 1. 헤더 수정: 4개 -> 5개 컬럼으로 (종목, 수량, 평단, 현재, 수익) (2026_0701 수정)
+            list.innerHTML = `<div class="grid grid-cols-5 gap-1 text-gray-500 border-b border-gray-800 pb-1 mb-1 text-[10px]">
+                        <span class="text-center">종목</span>
+                        <span class="text-center">수량</span>
+                        <span class="text-center">평단</span>
+                        <span class="text-center">현재</span>
+                        <span class="text-center">수익</span>
+                      </div>`;
 
             // 1. 도넛 차트 데이터 준비
             const chartSeries = [];
@@ -325,14 +324,16 @@
                 const profit = s.profit_rate;
                 const color = profit >= 0 ? 'text-up' : 'text-down';
 
-                // 리스트 업데이트
+                // 2. 행 클릭 시 매도 정보 자동 입력 (onclick 이벤트 추가) (2026_0701)
                 list.innerHTML += `
-            <div class="grid grid-cols-4 gap-1 items-center text-[11px] py-1 border-b border-gray-900">
-                <span class="font-bold text-white truncate">${s.stock_name}</span>
-                <span class="font-mono">${s.avg_buy_price.toLocaleString()}</span>
-                <span class="font-mono">${s.current_price.toLocaleString()}</span>
-                <span class="${color} font-bold">${profit}%</span>
-            </div>`;
+    <div class="grid grid-cols-5 gap-1 items-center text-[11px] py-1 border-b border-gray-900 cursor-pointer hover:bg-gray-800"
+         onclick="prepareSell('${s.stock_name}', ${s.total_quantity}, '${s.stck_shrn_iscd}', ${s.avg_buy_price})">
+        <span class="font-bold text-white truncate text-center">${s.stock_name}</span>
+        <span class="font-mono text-gray-300 text-center">${s.total_quantity.toLocaleString()}</span>
+        <span class="font-mono text-center">₩ ${s.avg_buy_price.toLocaleString()}</span>
+        <span class="font-mono text-center">₩ ${s.current_price.toLocaleString()}</span>
+        <span class="${color} font-bold text-center">${profit}%</span>
+    </div>`;
 
                 // 2. 도넛 차트용 데이터 배열 채우기
                 // 예: (현재가 * 수량)으로 비중 계산
@@ -414,6 +415,43 @@
         renderWatchlist(filtered); // 필터링된 데이터만 다시 그리기
     }//검색창 검색어 입력 시 호출
 
+
+    // [수정] 매수/매도 공통 실행 함수(2026_0701)
+    async function executeOrder(type) {
+        const quantity = document.getElementById('order-quantity').value;
+        const stockName = document.getElementById('order-stock-name').innerText;
+
+        if (!quantity || quantity <= 0) {
+            alert("수량을 확인하세요.");
+            return;
+        }
+
+        const url = type === 'buy' ? '/api/buyStock' : '/api/sellStock';
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({stockCode: currentStockCode, stockName: stockName, quantity: parseInt(quantity)})
+        });
+
+        if (response.ok) {
+            alert(type === 'buy' ? "매수가 완료되었습니다." : "매도가 완료되었습니다.");
+            renderHoldings(); // 리스트 갱신
+        } else {
+            alert("거래 처리에 실패했습니다. 잔액 또는 보유 수량을 확인하세요.");
+        }
+    }
+
+    // [추가] 매도 시 입력창 자동 채우기(2026_0701)
+    function prepareSell(name, quantity, code, avgPrice) {
+        document.getElementById('order-stock-name').innerText = name;
+        // 평단가 표시를 위해 새로운 span 추가 또는 기존 영역 활용
+        // 여기서는 종목명 옆에 평단가를 함께 표시하도록 구성
+        document.getElementById('order-stock-name').innerText = `${name} (평단: ₩${avgPrice.toLocaleString()})`;
+
+        document.getElementById('order-quantity').value = quantity;
+        currentStockCode = code;
+    }
 
     /* * [페이지 라이프사이클 관리]
          * DOMContentLoaded: HTML 문서가 모두 로드된 직후 실행되는 초기화 블록입니다.
