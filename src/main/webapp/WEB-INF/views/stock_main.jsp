@@ -1,5 +1,6 @@
 <%@ page isELIgnored="true" %>
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -399,8 +400,8 @@
         // 5초마다 데이터 갱신
         setInterval(fetchAndRender, 50000);
     });
-
-
 </script>
+<script src="<c:url value='/resources/js/common.js'/>"></script>
+<%@ include file="/WEB-INF/views/common/modal.jsp" %>
 </body>
 </html>
