@@ -113,7 +113,7 @@
         </div>
 
         <!-- 로그아웃 버튼 -->
-        <button class="text-xs text-gray-500 hover:text-red-400 transition font-bold">[LOGOUT]</button>
+        <button class="text-xs text-gray-500 hover:text-red-400 transition font-bold" onclick="logout()">[LOGOUT]</button>
     </div>
 </header>
 
@@ -474,6 +474,23 @@
         // 5초마다 데이터 갱신
         setInterval(fetchAndRender, 50000);
     });
+
+    // =============================== 로그아웃 ===============================
+    async function logout() {
+        try {
+            // 서버 측 토큰 무효화 요청
+            await fetch('/api/logout', { method: 'POST' });
+        } catch (e) {
+            console.error("로그아웃 서버 처리 실패");
+        } finally {
+            // 성공하든 실패하든 클라이언트 로컬 스토리지는 반드시 비움
+            localStorage.removeItem("accessToken");
+            localStorage.removeItem("refreshToken");
+
+            // 로그인 페이지로 이동
+            window.location.href = "/login";
+        }
+    }
 </script>
 <script src="<c:url value='/resources/js/common.js'/>"></script>
 <%@ include file="/WEB-INF/views/common/modal.jsp" %>

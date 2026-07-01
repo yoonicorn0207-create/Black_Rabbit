@@ -1,6 +1,7 @@
 package com.blackrabbit.login;
 
 import com.blackrabbit.common.dto.ResultDTO;
+import com.blackrabbit.common.util.JwtProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
@@ -10,6 +11,8 @@ public class LoginController {
 
   @Autowired
   LoginService loginService;
+  @Autowired
+  JwtProvider jwtProvider;
 
 
   // 로그인 메인 페이지 호출
@@ -36,7 +39,12 @@ public class LoginController {
 
   // 로그아웃= db에 저장된 refresh 토큰 삭제
   @PostMapping("/api/userLogout")
-  public void delRefreshToken(LoginDTO userData){
-    loginService.logoutUser(userData);
+  public void delRefreshToken(@RequestHeader("Authorization") String authHeader){
+    // 1. 토큰에서 유저네임 추출 (JWT Provider 사용)
+    String token = authHeader.substring(7);
+    String username = jwtProvider.getUsernameFromToken(token);
+
+    // 2. DB에서 해당 유저의 Refresh Token 삭제
+    loginService.logoutUser(username);
   }
 }

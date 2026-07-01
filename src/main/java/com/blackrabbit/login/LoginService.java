@@ -8,7 +8,7 @@ public interface LoginService {
   ResultDTO loginUser(LoginDTO userData);
 
   // 로그아웃
-  void logoutUser(LoginDTO userData);
+  void logoutUser(String username);
 
   // 새 토큰 발급(refresh 가지고 새로운 access 발급)
   ResultDTO refreshAccessToken(String refreshToken);

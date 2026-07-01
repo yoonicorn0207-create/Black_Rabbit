@@ -152,7 +152,8 @@ public class LoginServiceImpl implements LoginService {
 
   // 정상 로그아웃 시 저장된 refresh 토큰 삭제
   @Override
-  public void logoutUser(LoginDTO userData){
-    loginMapper.deleteRToken(userData.getUsername());
+  public void logoutUser(String username){
+
+    loginMapper.deleteRToken(username);
   }
 }
