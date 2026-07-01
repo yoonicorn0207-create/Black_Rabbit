@@ -3,7 +3,9 @@ import os
 from dotenv import load_dotenv
 
 
-load_dotenv(dotenv_path="../dataset/config/.env")
+current_dir = os.path.dirname(os.path.abspath(__file__)) if '__file__' in locals() else os.getcwd()
+dotenv_path = os.path.abspath(os.path.join(current_dir, "..", "dataset", "config", ".env"))
+load_dotenv(dotenv_path=dotenv_path, override=True)
 
 
 ## =========== DB 연결 =================

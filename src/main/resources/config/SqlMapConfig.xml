@@ -17,6 +17,15 @@
         <typeAlias alias="userHoldingStockDTO"
                    type="com.blackrabbit.stock.UserHoldingStockDTO"/>
 
+        <typeAlias alias="signupDTO"
+                   type="com.blackrabbit.signup.SignupDTO"/>
+
+        <typeAlias alias="loginDTO"
+                   type="com.blackrabbit.login.LoginDTO"/>
+
+        <typeAlias alias="resultDTO"
+                   type="com.blackrabbit.common.dto.ResultDTO"/>
+
     </typeAliases>
 
 

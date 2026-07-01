@@ -8,6 +8,23 @@
 		http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-4.3.xsd">
 	<mvc:annotation-driven />
 
+	<mvc:resources mapping="/resources/**" location="/resources/" />
+
+	<!--	토큰 만료 체킹을 위한 JWT 인터셉터 추가 -->
+	<mvc:interceptors>
+		<mvc:interceptor>
+			<mvc:mapping path="/api/**" />
+			<!-- exclude-mappin에 선언된 api들은 interceptor를 타지 않아 토큰 체킹 안함	-->
+			<mvc:exclude-mapping path="/api/login" />
+			<mvc:exclude-mapping path="/api/userLogin" />
+			<mvc:exclude-mapping path="/api/auth/refresh" />
+			<mvc:exclude-mapping path="/api/signinDup" />
+			<mvc:exclude-mapping path="/api/userSignup" />
+			<bean class="com.blackrabbit.common.util.JwtInterceptor" />
+		</mvc:interceptor>
+	</mvc:interceptors>
+
+	<!-- 정적 리소스 정상 출력을 위한 설정 추가	-->
 	<context:component-scan
 		base-package="com.blackrabbit" />
 
@@ -23,6 +40,9 @@
 		<property name="prefix" value="/WEB-INF/views/" />
 		<property name="suffix" value=".jsp" />
 	</bean>
+
+	<!-- 회원가입 시 패스워드 해시화를 위한 라이브러리 선언	-->
+	<bean id="passwordEncoder" class="org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder" />
 
 	<import resource="classpath:spring/datasource.xml" />
 

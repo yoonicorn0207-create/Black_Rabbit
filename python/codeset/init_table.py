@@ -71,6 +71,69 @@ def initialize_all_tables():
                     stck_cntg_hour
                 )
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='시간봉 적재 테이블';
+        """,
+        "HC_user": """
+            CREATE TABLE IF NOT EXISTS HC_user (
+                id                 BIGINT AUTO_INCREMENT PRIMARY KEY,
+                username           VARCHAR(30) NOT NULL COMMENT '로그인 아이디',
+                password_hash      VARCHAR(255) NOT NULL COMMENT 'BCrypt 해시 비밀번호',
+                email              VARCHAR(100) NOT NULL COMMENT '이메일',
+                balance            BIGINT NOT NULL DEFAULT 0 COMMENT '예수금',
+                role               ENUM('USER', 'ADMIN')
+                                       NOT NULL DEFAULT 'USER'
+                                       COMMENT '회원 권한',
+                status             ENUM('ACTIVE', 'INACTIVE', 'SUSPENDED', 'DELETED')
+                                       NOT NULL DEFAULT 'ACTIVE'
+                                       COMMENT '회원 상태',
+                email_verified     BOOLEAN NOT NULL DEFAULT FALSE COMMENT '이메일 인증 여부',
+                last_login_at      TIMESTAMP NULL COMMENT '마지막 로그인 시간',
+                created_at         TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '가입일',
+                updated_at         TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                                       ON UPDATE CURRENT_TIMESTAMP
+                                       COMMENT '회원정보 수정일',
+                deleted_at         TIMESTAMP NULL COMMENT '탈퇴일',
+                UNIQUE KEY uq_username (username),
+                UNIQUE KEY uq_email (email)
+
+            ) ENGINE=InnoDB
+            DEFAULT CHARSET=utf8mb4
+            COMMENT='회원 정보';
+        """,
+        "HC_refresh_token": """
+            CREATE TABLE IF NOT EXISTS HC_refresh_token (
+                id                      BIGINT AUTO_INCREMENT PRIMARY KEY,
+                user_id                 BIGINT NOT NULL COMMENT '회원 PK',
+                refresh_token_hash      VARCHAR(255) NOT NULL COMMENT 'Refresh Token 해시값',
+                expires_at              TIMESTAMP NOT NULL COMMENT '토큰 만료시간',
+                created_at              TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                                            COMMENT '발급시간',
+                CONSTRAINT fk_refresh_token_user
+                    FOREIGN KEY (user_id)
+                    REFERENCES HC_user(id)
+                    ON DELETE CASCADE,
+                INDEX idx_user_id (user_id),
+                INDEX idx_expires_at (expires_at),
+                UNIQUE KEY uq_refresh_token (refresh_token_hash)
+            ) ENGINE=InnoDB
+            DEFAULT CHARSET=utf8mb4
+            COMMENT='Refresh Token';
+        """,
+        "HC_user_holdings": """
+            CREATE TABLE HC_user_holdings (
+                holding_id BIGINT AUTO_INCREMENT PRIMARY KEY, 
+                user_id VARCHAR(50) NOT NULL,                 
+                stck_shrn_iscd VARCHAR(10) NOT NULL,          
+                total_quantity INT DEFAULT 0,                 
+                total_buy_amount DECIMAL(19, 4) DEFAULT 0,    
+                avg_buy_price DECIMAL(19, 4) DEFAULT 0,       
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, 
+                -- CONSTRAINT 앞에 쉼표(,)가 있어야 합니다.
+                CONSTRAINT fk_user_holdings_user 
+                    FOREIGN KEY (user_id) REFERENCES HC_user(id) 
+                    ON DELETE CASCADE
+            )ENGINE=InnoDB
+            DEFAULT CHARSET=utf8mb4
+            COMMENT='HC_user_holdings';; -- 마지막에 닫는 괄호와 세미콜론 필수                
         """
     }
 
