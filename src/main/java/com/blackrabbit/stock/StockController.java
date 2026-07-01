@@ -92,9 +92,9 @@ public class StockController {
         String userId = (String) session.getAttribute("userId");
 
         // 2. 테스트용: 로그인 미구현 시 기본값 설정
-        if (userId == null) {
-            userId = "1";
-        }
+//        if (userId == null) {
+//            userId = "1";
+//        }
 
         // 3. 서비스 호출하여 리스트 변수에 담기
         List<UserHoldingStockDTO> userHoldingList = stockService.getMyHoldings(userId);
@@ -125,6 +125,7 @@ public class StockController {
             boolean result = stockService.buyStock(userId, stockCode, stockName, quantity);
 
             if (result) {
+                // 여기서 예수금 가져오기 진행
                 return ResponseEntity.ok("매수 성공");
             } else {
                 return ResponseEntity.status(400).body("매수 실패 (잔액 부족 등)");
@@ -154,6 +155,7 @@ public class StockController {
             boolean result = stockService.sellStock(userId, stockCode, quantity);
 
             if (result) {
+                // 여기서 예수금 가져오기 진행
                 return ResponseEntity.ok("매도 성공");
             } else {
                 return ResponseEntity.status(400).body("매도 실패 (보유 수량 부족 등)");

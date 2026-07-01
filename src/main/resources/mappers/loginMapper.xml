@@ -55,4 +55,11 @@
       WHERE username = #{username}
     )
   </delete>
+
+  <!-- 로그인된 사용자 아이디 출력 -->
+  <select id="getUserId" parameterType="int">
+    SELECT username
+    FROM HC_user
+    WHERE id = #{userId}
+  </select>
 </mapper>

@@ -113,7 +113,11 @@
         </div>
 
         <!-- 로그아웃 버튼 -->
-        <button class="text-xs text-gray-500 hover:text-red-400 transition font-bold" onclick="logout()">[LOGOUT]</button>
+        <div class="flex items-center gap-3">
+            <span id="loginUserId" class="text-xs font-bold text-yellow-400"></span>
+
+            <button class="text-xs text-gray-500 hover:text-red-400 transition font-bold" onclick="logout()">[LOGOUT]</button>
+        </div>
     </div>
 </header>
 
@@ -491,6 +495,18 @@
             window.location.href = "/login";
         }
     }
+
+    // =============================== 로그인된 사용자 id 출력을 위한 로직 ===============================
+    async function loadUserInfo() {
+        const res = await fetch('/api/userInfo');
+        const data = await res.json();
+        if(data.userId) {
+            document.getElementById('loginUserId').innerText = data.userId + "님";
+        }
+    }
+
+    // 페이지 로드 시 실행
+    document.addEventListener('DOMContentLoaded', loadUserInfo);
 </script>
 <script src="<c:url value='/resources/js/common.js'/>"></script>
 <%@ include file="/WEB-INF/views/common/modal.jsp" %>
