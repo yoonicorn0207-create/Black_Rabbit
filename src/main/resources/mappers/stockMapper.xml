@@ -18,9 +18,9 @@
         SELECT stck_bsop_date, stck_oprc, stck_hgpr, stck_lwpr, stck_clpr
         FROM
         <choose>
-            <when test="period == 'week'"> HC_stock_weekly2 </when>
-            <when test="period == 'month'"> HC_stock_monthly2 </when>
-            <otherwise> HC_stock_daily2 </otherwise>
+            <when test="period == 'week'">HC_stock_weekly2</when>
+            <when test="period == 'month'">HC_stock_monthly2</when>
+            <otherwise>HC_stock_daily2</otherwise>
         </choose>
         WHERE stck_shrn_iscd = #{code}
         ORDER BY stck_bsop_date ASC
@@ -29,25 +29,119 @@
     <!-- 3. BlackRabbit 메인페이지 - 분봉/ 시간봉(0630) -->
     <select id="getMinHourChart" resultType="StockDailyDTO">
         SELECT * FROM (
-            SELECT CONCAT(stck_bsop_date, ' ', stck_cntg_hour) AS stck_bsop_date,
-                stck_cntg_hour,
-                stck_oprc,
-                stck_hgpr,
-                stck_lwpr,
-                stck_prpr AS stck_clpr
-            FROM
-            <choose>
-                <when test="period == 'minute'"> HC_stock_minute2 </when>
-                <otherwise> HC_stock_hourly </otherwise>
-            </choose>
-            WHERE ticker = #{code}
-            ORDER BY stck_bsop_date DESC, stck_cntg_hour DESC
-            limit
-            <choose>
-                <when test="period == 'minute'"> 100 </when>
-                <otherwise> 50 </otherwise>
-            </choose>
+        SELECT CONCAT(stck_bsop_date, ' ', stck_cntg_hour) AS stck_bsop_date,
+        stck_cntg_hour,
+        stck_oprc,
+        stck_hgpr,
+        stck_lwpr,
+        stck_prpr AS stck_clpr
+        FROM
+        <choose>
+            <when test="period == 'minute'">HC_stock_minute2</when>
+            <otherwise>HC_stock_hourly</otherwise>
+        </choose>
+        WHERE ticker = #{code}
+        ORDER BY stck_bsop_date DESC, stck_cntg_hour DESC
+        limit
+        <choose>
+            <when test="period == 'minute'">100</when>
+            <otherwise>50</otherwise>
+        </choose>
         ) AS subquery
         ORDER BY stck_bsop_date ASC, stck_cntg_hour ASC
     </select>
+
+    <!--  4. BlackRabbit 메인페이지 - 회원 보유종목 리스트  (2026_0630) By.yoonicorn -->
+    <select id="getUserHoldings" resultType="userHoldingStockDTO">
+        SELECT h.stck_shrn_iscd,                                                                     -- 종목 코드
+               d.hts_kor_isnm                                                      AS stock_name,    -- 종목명 (JOIN)
+               h.total_quantity,                                                                     -- 보유 수량
+               h.avg_buy_price,                                                                      -- 평균 매수 단가
+               d.stck_prpr                                                         AS current_price, -- 현재가 (JOIN)
+
+               -- 실시간 수익률 계산: (현재가 - 평단가) / 평단가 * 100
+               ROUND(((d.stck_prpr - h.avg_buy_price) / h.avg_buy_price) * 100, 2) AS profit_rate
+        FROM HC_user_holdings h
+                 JOIN HC_stock_daily1 d ON h.stck_shrn_iscd = d.stck_shrn_iscd
+        WHERE h.user_id = #{userId}
+    </select>
+
+    <!--* 5. BlackRabbit 메인페이지 - 주식 매수 (2026_0701 추가) -->
+    <!-- ① 현재 주식의 현재가 조회-->
+    <select id="getCurrentPrice" resultType="int" parameterType="string">
+        SELECT stck_prpr
+        FROM HC_stock_daily1
+        WHERE stck_shrn_iscd = #{stockCode}
+    </select>
+
+    <!-- ② 사용자의 현재 잔액 확인-->
+    <select id="getUserBalance" resultType="int" parameterType="string">
+        SELECT balance
+        FROM HC_user
+        WHERE id = #{userId}
+    </select>
+
+    <!-- ③ 사용자 예수금 잔액차감-->
+    <update id="updateUserBalance">
+        UPDATE HC_user
+        SET balance = balance - #{amount}
+        WHERE id = #{userId}
+    </update>
+
+    <!-- ④ 사용자 종목 보유 or 미보유 확인 -->
+    <select id="checkIfHolding" resultType="boolean" parameterType="map">
+        SELECT COUNT(*) > 0
+        FROM HC_user_holdings
+        WHERE user_id = #{userId}
+          AND stck_shrn_iscd = #{stockCode}
+    </select>
+
+    <!-- ⑤ 보유 중이면 수량+평단 업데이트 -->
+    <update id="updateHolding">
+        UPDATE HC_user_holdings
+        SET avg_buy_price    = (total_buy_amount + (#{quantity} * #{currentPrice})) / (total_quantity + #{quantity}),
+            total_buy_amount = total_buy_amount + (#{quantity} * #{currentPrice}),
+            total_quantity   = total_quantity + #{quantity}
+        WHERE user_id = #{userId}
+          AND stck_shrn_iscd = #{stockCode}
+    </update>
+
+    <!-- ⑥ 없으면 신규 INSERT -->
+    <insert id="insertHolding">
+        INSERT INTO HC_user_holdings (user_id, stck_shrn_iscd, total_quantity, avg_buy_price, total_buy_amount)
+        VALUES (#{userId}, #{stockCode}, #{quantity}, #{currentPrice}, #{quantity} * #{currentPrice})
+    </insert>
+
+    <!-- 6. BlackRabbit 메인페이지 - 주식 매도 (2026_0701 추가) -->
+    <select id="getHoldingQuantity" resultType="int">
+        SELECT total_quantity
+        FROM HC_user_holdings
+        WHERE user_id = #{userId}
+          AND stck_shrn_iscd = #{stockCode}
+    </select>
+
+    <!-- ① 전량 매도 시 테이블에서 데이터 삭제-->
+    <delete id="deleteHolding">
+        DELETE
+        FROM HC_user_holdings
+        WHERE user_id = #{userId}
+          AND stck_shrn_iscd = #{stockCode}
+    </delete>
+
+    <!-- ② 일부 매도 시 수량과 구매 금액 조정-->
+    <update id="reduceHolding">
+        UPDATE HC_user_holdings
+        SET total_quantity   = total_quantity - #{quantity},
+            total_buy_amount = total_buy_amount - (#{quantity} * #{currentPrice})
+        WHERE user_id = #{userId}
+          AND stck_shrn_iscd = #{stockCode}
+    </update>
+
+    <!-- ③ 사용자의 잔액 증가 (매도 금액만큼)-->
+    <update id="addBalance">
+        UPDATE HC_user
+        SET balance = balance + #{amount}
+        WHERE id = #{userId}
+    </update>
+
 </mapper>
