@@ -16,9 +16,6 @@ public class SignupController {
   @Autowired
   SignupService signupService;
 
-  // 로그인 메인 페이지 호출
-  @RequestMapping("/login")
-  public String getLoginPage(){return "login";}
 
   // 사용자 id/ email 중복 확인 api
   @RequestMapping(value="/api/signinDup", method = RequestMethod.POST )
@@ -34,7 +31,7 @@ public class SignupController {
   @RequestMapping(value="/api/userSignup", method = RequestMethod.POST)
   @ResponseBody
   public ResultDTO createUser(@RequestBody SignupDTO req){
-    //  성공 시 로그인 박스로 redirect 하자
+    // 성공 시 로그인 박스로 redirect 하자
     return signupService.createUser(req);
   }
 }
