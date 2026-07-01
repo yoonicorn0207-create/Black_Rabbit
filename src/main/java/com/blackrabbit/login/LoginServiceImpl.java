@@ -5,7 +5,11 @@ import com.blackrabbit.common.util.JwtProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
+
+import javax.servlet.http.HttpSession;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
@@ -95,10 +99,17 @@ public class LoginServiceImpl implements LoginService {
     }
 
     // 로그인 성공
-    //  token 발행 진행
+    // 세션에 로그인 성공 사용자 idx 저장
+    String userId = String.valueOf(dbRes.get("id")); // 세션 저장용 idx
+    ServletRequestAttributes attr = (ServletRequestAttributes) RequestContextHolder.currentRequestAttributes();
+    HttpSession session = attr.getRequest().getSession(true); // 세션이 없으면 새로 생성
+    session.setAttribute("userId", userId);
+
+    // token 발행 진행
     String username = userData.getUsername();
     String accessToken = jwtProvider.createAccessToken(username);
     String refreshToken = jwtProvider.createRefreshToken(username);
+
 
     // 토큰 저장하기
     loginMapper.saveOrUpdateRToken(username, refreshToken);
@@ -110,6 +121,7 @@ public class LoginServiceImpl implements LoginService {
     Map<String, String> data = new HashMap<>();
     data.put("accessToken", accessToken);
     data.put("refreshToken", refreshToken); // 프론트가 보관하게 전달
+    data.put("userId", String.valueOf(dbRes.get("id"))); // 타입 주의!
     res.setState(true);
     res.setData(data);
 

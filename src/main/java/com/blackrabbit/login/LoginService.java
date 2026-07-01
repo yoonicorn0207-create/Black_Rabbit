@@ -2,6 +2,8 @@ package com.blackrabbit.login;
 
 import com.blackrabbit.common.dto.ResultDTO;
 
+import javax.servlet.http.HttpSession;
+
 public interface LoginService {
 
   // 로그인

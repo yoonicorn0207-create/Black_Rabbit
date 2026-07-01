@@ -6,6 +6,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpSession;
+
 @Controller
 public class LoginController {
 
@@ -28,7 +30,7 @@ public class LoginController {
   }
 
 
-  // 토큰 재발급 (refresh를 이용하여 access를 재발급)
+  // 토큰 재발급 (refresh를 이용하여 access를 재발급)loginUser.loginUser
   @PostMapping("/api/auth/refresh")
   public ResultDTO newAccessToken(@RequestHeader("Authorization") String refreshToken) {
     // "Bearer " 제거 후 순수 토큰값만 추출
