@@ -148,6 +148,13 @@ def initialize_all_tables():
                 updated_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES HC_user(id) ON DELETE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='KIS API 토큰 캐시';
+        """,
+        "HC_realtime_indices" : """
+            CREATE TABLE IF NOT EXISTS HC_realtime_indices (
+                tr_key VARCHAR(10) PRIMARY KEY, -- '0001'(KOSPI), '1001'(KOSDAQ)
+                current_val VARCHAR(20),        -- 실시간 지수 값
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP -- 마지막 업데이트 시간
+            );
         """
     }
 
