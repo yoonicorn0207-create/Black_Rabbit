@@ -5,31 +5,45 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
-import java.rmi.ServerException;
 
-// 정상적인 로그인을 거치지 않은 사용자가 로그인 외 페이지에 접근하지 못하도록
 public class AuthFilter implements Filter {
+  // 보호가 필요한 라우터 리스트
+  private static final String[] PROTECTED_PATHS = {
+      "/stockMain",
+  };
+
+  private boolean isProtected(String uri) {
+    for (String path : PROTECTED_PATHS) {
+      if (uri.startsWith(path)) return true;
+    }
+    return false;
+  }
+
   public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
-      throws IOException, ServerException {
+      throws IOException, ServletException { // ServerException 대신 ServletException 사용
 
     HttpServletRequest httpRequest = (HttpServletRequest) request;
     HttpServletResponse httpResponse = (HttpServletResponse) response;
+
+    String requestURI = httpRequest.getRequestURI();
     HttpSession session = httpRequest.getSession(false);
 
-    // 로그인 여부 및 권한 확인
-    boolean isLoggedIn = (session != null && session.getAttribute("userRole") != null);
-    String requestURI = httpRequest.getRequestURI();
+    if (isProtected(requestURI)) {
 
-    // 보호가 필요한 경로인 경우
-    if (requestURI.startsWith("/admin") && !"ADMIN".equals(session.getAttribute("userRole"))) {
-      httpResponse.sendRedirect(httpRequest.getContextPath() + "/login.jsp?error=unauthorized");
-      return;
+      // 로그인 여부 확인
+      if (session == null || session.getAttribute("userId") == null) {
+        httpResponse.sendRedirect(httpRequest.getContextPath() + "/login.jsp");
+        return;
+      }
+
+      // 추후 관리자 페이지 생성 시 접근자의 권한 확인
+//      if (!"ADMIN".equals(session.getAttribute("userRole"))) {
+//        httpResponse.sendRedirect(httpRequest.getContextPath() + "/login.jsp?error=unauthorized");
+//        return;
+//      }
     }
 
-    try {
-      chain.doFilter(request, response);
-    } catch (ServletException e) {
-      throw new RuntimeException(e);
-    }
+    // 조건에 해당하지 않거나, 권한이 확인된 경우 요청을 통과시킴
+    chain.doFilter(request, response);
   }
 }

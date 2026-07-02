@@ -38,14 +38,14 @@
 	</session-config>
 
 
-	<!-- 필터: 인가받지 않은 사용자가 특정 페이지들 접근하지 못하게 관리 -->
+	<!-- 필터: /* 모든 라우터 경로에서 필터 코드를 태우겠다 -->
 	<filter>
 		<filter-name>AuthFilter</filter-name>
 		<filter-class>com.blackrabbit.common.util.AuthFilter</filter-class>
 	</filter>
 	<filter-mapping>
 		<filter-name>AuthFilter</filter-name>
-		<url-pattern>/stockMain/*</url-pattern>
+		<url-pattern>/*</url-pattern>
 	</filter-mapping>
-  
+
 </web-app>
