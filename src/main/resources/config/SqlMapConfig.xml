@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration PUBLIC "-//mybatis.org//DTD Config 3.0//EN" "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+    <!-- 일반 주석 <settings> DB의 스네이크 케이스(_ )를 자바의 카멜 케이스로 자동 변환 <setting name="mapUnderscoreToCamelCase"
+        value="true"/> </settings> -->
+    <typeAliases>
+        <!-- 예시 StockDTO 매퍼에서 그냥 'stockDTO'라고 짧게 부를 수 있게 설정  (2026_0626에 추가) -->
+
+        <typeAlias alias="stockDTO"
+                   type="com.blackrabbit.stock.StockDTO"/>
+
+        <!-- 예시 StockDTO 매퍼에서 그냥 'stockDailyDTO'라고 짧게 부를 수 있게 설정  (2026_0629에 추가) -->
+        <typeAlias alias="stockDailyDTO"
+                   type="com.blackrabbit.stock.StockDailyDTO"/>
+
+        <!-- 예시 UserHoldingStockDTO 매퍼에서 그냥 'userHoldingStockDTO'라고 짧게 부를 수 있게 설정  (2026_0630에 추가) -->
+        <typeAlias alias="userHoldingStockDTO"
+                   type="com.blackrabbit.stock.UserHoldingStockDTO"/>
+
+        <typeAlias alias="signupDTO"
+                   type="com.blackrabbit.signup.SignupDTO"/>
+
+        <typeAlias alias="loginDTO"
+                   type="com.blackrabbit.login.LoginDTO"/>
+
+        <typeAlias alias="resultDTO"
+                   type="com.blackrabbit.common.dto.ResultDTO"/>
+
+    </typeAliases>
+
+
+</configuration>

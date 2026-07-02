@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.3.xsd
+		http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-4.3.xsd">
+	<mvc:annotation-driven />
+
+	<mvc:resources mapping="/resources/**" location="/resources/" />
+
+	<mvc:interceptors>
+		<!--	토큰 만료 체킹을 위한 JWT 인터셉터 설정 파일 추가 -->
+		<mvc:interceptor>
+			<mvc:mapping path="/api/**" />
+			<!-- exclude-mappin에 선언된 api들은 interceptor를 타지 않아 토큰 체킹 안함	-->
+			<mvc:exclude-mapping path="/api/login" />
+			<mvc:exclude-mapping path="/api/userLogin" />
+			<mvc:exclude-mapping path="/api/auth/refresh" />
+			<mvc:exclude-mapping path="/api/signinDup" />
+			<mvc:exclude-mapping path="/api/userSignup" />
+			<bean class="com.blackrabbit.common.util.JwtInterceptor" />
+		</mvc:interceptor>
+
+		<!--	HttpSession 사용을 위한 인터셉터 설정 파일 추가	-->
+		<mvc:interceptor>
+			<mvc:mapping path="/api/**" />
+			<mvc:exclude-mapping path="/api/login" />
+			<mvc:exclude-mapping path="/api/userLogin" />
+			<mvc:exclude-mapping path="/api/auth/refresh" />
+			<mvc:exclude-mapping path="/api/signinDup" />
+			<mvc:exclude-mapping path="/api/userSignup" />
+			<bean class="com.blackrabbit.common.util.SessionCheckInterceptor" />
+		</mvc:interceptor>
+	</mvc:interceptors>
+
+	<!-- 정적 리소스 정상 출력을 위한 설정 추가	-->
+	<context:component-scan
+		base-package="com.blackrabbit" />
+
+	<!-- CORS 설정 -->
+	<mvc:cors>
+		<mvc:mapping path="/**" allowed-origins="*"
+			allowed-methods="GET, POST, PUT, DELETE, OPTIONS" allowed-headers="*" />
+	</mvc:cors>
+
+
+	<bean
+		class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+		<property name="prefix" value="/WEB-INF/views/" />
+		<property name="suffix" value=".jsp" />
+	</bean>
+
+	<!-- 회원가입 시 패스워드 해시화를 위한 라이브러리 선언	-->
+	<bean id="passwordEncoder" class="org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder" />
+
+	<import resource="classpath:spring/datasource.xml" />
+
+</beans>
