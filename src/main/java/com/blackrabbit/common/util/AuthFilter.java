@@ -48,6 +48,6 @@ public class AuthFilter implements Filter {
 //      }
 
     // 조건에 해당하지 않거나, 권한이 확인된 경우 요청을 통과시킴
-      chain.doFilter(request,response);
+    chain.doFilter(request,response);
   }
 }
