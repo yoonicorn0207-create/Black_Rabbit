@@ -10,6 +10,7 @@ public class AuthFilter implements Filter {
   // 보호가 필요하지 않은 라우터 리스트- 화이트리스트 방식으로 진행
   private static final String[] PUBLIC_PATHS = {
       "/login",
+      "/resources",
   };
 
   private boolean isPublic(String uri) {
@@ -36,7 +37,7 @@ public class AuthFilter implements Filter {
 
     // 로그인 여부 확인
     if (session == null || session.getAttribute("userId") == null) {
-      httpResponse.sendRedirect(httpRequest.getContextPath() + "/login.jsp");
+      httpResponse.sendRedirect(httpRequest.getContextPath() + "/login");
       return;
     }
 
