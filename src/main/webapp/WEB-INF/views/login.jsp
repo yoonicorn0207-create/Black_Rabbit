@@ -16,11 +16,11 @@
 
     <div class="container" id="container">
 
-        <%-- 회원가입 컴포넌트 --%>
-        <jsp:include page="/WEB-INF/views/login/signup-form.jsp" />
-
         <%-- 로그인 컴포넌트 --%>
         <jsp:include page="/WEB-INF/views/login/login-form.jsp" />
+
+        <%-- 회원가입 컴포넌트 --%>
+        <jsp:include page="/WEB-INF/views/login/signup-form.jsp" />
 
         <div class="container__overlay">
             <div class="overlay">

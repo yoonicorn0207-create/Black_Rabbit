@@ -6,50 +6,281 @@
     --input-bg: rgba(255, 255, 255, 0.1);
 }
 
-body { margin: 0; padding: 0; display: grid; height: 100vh; place-items: center; overflow: hidden; font-family: sans-serif; background-color: #0e1118; }
+body {
+    margin: 0;
+    padding: 0;
+    display: grid;
+    place-items: center;
+    height: 100vh;
+    overflow: hidden;
+    font-family: sans-serif;
+    background: #0e1118;
+}
 
-#bg-video { position: fixed; top: 50%; left: 50%; min-width: 100%; min-height: 100%; transform: translateX(-50%) translateY(-50%); z-index: -1; object-fit: cover; }
+#bg-video {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    min-width: 100%;
+    min-height: 100%;
+    transform: translate(-50%, -50%);
+    object-fit: cover;
+    z-index: -1;
+}
 
-/* 기본 상태 = 로그인 화면: 작고 컴팩트한 카드 */
-.container { background-color: var(--glass-bg); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); border-radius: 1rem; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); width: 100%; max-width: 420px; height: 480px; position: relative; overflow: hidden; transition: max-width 0.6s ease-in-out, height 0.6s ease-in-out, min-height 0.6s ease-in-out; }
+/* ============================
+   로그인(기본)
+   ============================ */
+.container {
+    position: relative;
+    overflow: hidden;
 
-/* right-panel-active = 회원가입 화면: 넓고 큰 카드 (기존 크기 유지) */
-.container.right-panel-active { max-width: 760px; min-height: 950px; height: max-content; }
+    width: 420px;
+    height: 480px;
 
-.logo-text { font-size: 2.2rem; font-weight: 900; margin-bottom: 1rem; letter-spacing: 2px; }
-.text-rabbit { color: var(--text-red); }
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.45);
 
-.container__form { height: 100%; position: absolute; top: 0; transition: all 0.6s ease-in-out; }
-.container--signin { left: 0; width: 50%; z-index: 2; }
-.container--signup { left: 0; width: 50%; z-index: 1; opacity: 0; }
-.container.right-panel-active .container--signin { transform: translateX(100%); opacity: 0; }
-.container.right-panel-active .container--signup { transform: translateX(100%); opacity: 1; z-index: 5; }
+    transition:
+            width .6s ease,
+            height .6s ease,
+            transform .6s ease;
+}
 
-.form { display: flex; align-items: center; justify-content: center; flex-direction: column; padding: 0 2.5rem; height: 100%; box-sizing: border-box; }
+/* ============================
+   회원가입
+   ============================ */
+.container.right-panel-active {
+    width: 760px;
+    height: 950px;
+}
 
-.input { background-color: var(--input-bg); border: 1px solid rgba(255,255,255,0.2); padding: 0.7rem 1rem; width: 100%; border-radius: 8px; color: white; font-size: 0.9rem; }
-.input:focus { outline: none; border-color: var(--accent-yellow); }
+/* ============================
+   FORM
+   ============================ */
 
-/* 중복확인 버튼 */
-.btn-check { border: 1px solid rgba(255,255,255,0.5); color: white; padding: 0 1rem; border-radius: 8px; font-size: 0.75rem; white-space: nowrap; height: 42px; transition: 0.3s; }
-.btn-check:hover { background: white; color: black; }
+.container__form {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    transition: all .6s ease-in-out;
+}
 
-/* 유효성 문구 영역 (밀림 방지용) */
-.val_check { width: 100%; min-height: 1.4rem; font-size: 0.75rem; text-align: left; padding: 0 0.5rem; margin-bottom: 0.2rem; color: #ff3e3e; visibility: hidden; }
-.val_check.show { visibility: visible; }
+.container--signin {
+    left: 0;
+    width: 50%;
+    z-index: 2;
+}
 
-.btn { background-color: var(--accent-yellow); color: #000; font-weight: 800; border-radius: 50px; padding: 0.8rem 3rem; cursor: pointer; border: none; text-transform: uppercase; margin-top: 1rem; transition: 0.3s; }
-.btn:hover { box-shadow: 0 0 15px var(--accent-yellow); }
+.container--signup {
+    left: 0;
+    width: 50%;
+    opacity: 0;
+    z-index: 1;
+}
 
-.btn-overlay { background: transparent; border: 2px solid var(--text-white); color: var(--text-white); padding: 1rem 3rem; border-radius: 50px; }
-.btn-overlay:hover { background: var(--text-white); color: #000; }
+/* 로그인 -> 회원가입 */
+.container.right-panel-active .container--signin {
+    transform: translateX(100%);
+    opacity: 0;
+}
 
-.container__overlay { height: 100%; left: 50%; overflow: hidden; position: absolute; top: 0; transition: transform 0.6s ease-in-out; width: 50%; z-index: 100; }
-.container.right-panel-active .container__overlay { transform: translateX(-100%); }
-.overlay { background: linear-gradient(135deg, rgba(20, 25, 35, 0.95), rgba(40, 50, 70, 0.95)); height: 100%; width: 200%; display: flex; position: relative; left: -100%; transition: transform 0.6s ease-in-out; }
-.container.right-panel-active .overlay { transform: translateX(50%); }
-.overlay__panel { width: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; padding: 0 2rem; }
+.container.right-panel-active .container--signup {
+    transform: translateX(100%);
+    opacity: 1;
+    z-index: 5;
+}
 
-/* 필수 입력값 라벨 */
-.field-label { width: 100%; display: flex; align-items: center; gap: 4px; font-size: 0.78rem; color: var(--text-white); opacity: 0.85; text-align: left; margin-bottom: 0.3rem; }
-.required-mark { color: var(--text-red); font-weight: 700; }
+.form {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 40px;
+    height: 100%;
+    box-sizing: border-box;
+}
+
+.logo-text {
+    font-size: 2.2rem;
+    font-weight: 900;
+    letter-spacing: 2px;
+    margin-bottom: 20px;
+}
+
+.text-rabbit {
+    color: var(--text-red);
+}
+
+.input {
+    width: 100%;
+    padding: 12px 15px;
+
+    color: white;
+    font-size: .9rem;
+
+    background: var(--input-bg);
+    border: 1px solid rgba(255,255,255,.15);
+    border-radius: 8px;
+
+    box-sizing: border-box;
+}
+
+.input:focus {
+    outline: none;
+    border-color: var(--accent-yellow);
+}
+
+.btn-check {
+    height: 42px;
+    padding: 0 16px;
+
+    border: 1px solid rgba(255,255,255,.5);
+    border-radius: 8px;
+
+    background: transparent;
+    color: white;
+
+    white-space: nowrap;
+    cursor: pointer;
+
+    transition: .3s;
+}
+
+.btn-check:hover {
+    background: white;
+    color: black;
+}
+
+.val_check {
+    width: 100%;
+    min-height: 20px;
+
+    padding-left: 5px;
+    margin-bottom: 5px;
+
+    font-size: .75rem;
+    color: var(--text-red);
+
+    visibility: hidden;
+}
+
+.val_check.show {
+    visibility: visible;
+}
+
+.btn {
+    margin-top: 20px;
+    padding: 13px 48px;
+
+    border: none;
+    border-radius: 999px;
+
+    background: var(--accent-yellow);
+    color: black;
+
+    font-weight: bold;
+    cursor: pointer;
+
+    transition: .3s;
+}
+
+.btn:hover {
+    box-shadow: 0 0 15px var(--accent-yellow);
+}
+
+.btn-overlay {
+    padding: 16px 48px;
+
+    background: transparent;
+    color: white;
+
+    border: 2px solid white;
+    border-radius: 999px;
+
+    cursor: pointer;
+}
+
+.btn-overlay:hover {
+    background: white;
+    color: black;
+}
+
+/* ============================
+   Overlay
+   ============================ */
+
+.container__overlay {
+    position: absolute;
+    top: 0;
+    left: 50%;
+
+    width: 50%;
+    height: 100%;
+
+    overflow: hidden;
+    z-index: 100;
+
+    transition: transform .6s ease-in-out;
+}
+
+.container.right-panel-active .container__overlay {
+    transform: translateX(-100%);
+}
+
+.overlay {
+    position: relative;
+    left: -100%;
+
+    width: 200%;
+    height: 100%;
+
+    display: flex;
+
+    background: linear-gradient(
+            135deg,
+            rgba(20,25,35,.95),
+            rgba(40,50,70,.95)
+    );
+
+    transition: transform .6s ease-in-out;
+}
+
+.container.right-panel-active .overlay {
+    transform: translateX(50%);
+}
+
+.overlay__panel {
+    width: 50%;
+    height: 100%;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 0 32px;
+
+    text-align: center;
+}
+
+.field-label {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    font-size: .78rem;
+    color: white;
+
+    opacity: .85;
+
+    margin-bottom: 5px;
+}
+
+.required-mark {
+    color: var(--text-red);
+    font-weight: bold;
+}
