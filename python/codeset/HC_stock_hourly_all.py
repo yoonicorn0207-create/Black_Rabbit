@@ -30,7 +30,13 @@ def createHourBarAllDaily(target_date):
                 SUM(cntg_vol)
             FROM HC_stock_minute2
             WHERE stck_bsop_date = '{target_date}'
-            GROUP BY ticker, stck_bsop_date, SUBSTR(stck_cntg_hour, 1, 2);
+            GROUP BY ticker, stck_bsop_date, SUBSTR(stck_cntg_hour, 1, 2)
+            ON DUPLICATE KEY UPDATE
+                stck_oprc = VALUES(stck_oprc),
+                stck_hgpr = VALUES(stck_hgpr),
+                stck_lwpr = VALUES(stck_lwpr),
+                stck_prpr = VALUES(stck_prpr),
+                cntg_vol  = VALUES(cntg_vol);
         """
         patchSingleRow(sql, "시간봉 일괄 생성 실패")
 
