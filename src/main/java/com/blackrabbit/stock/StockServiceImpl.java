@@ -120,4 +120,14 @@ public class StockServiceImpl implements StockService {
         }
     }//BlackRabbit 메인페이지 - 주식 매도 (2026_0701 추가)
 
+    /* 7. 예수금 조회 API */
+    @Override
+    public long getUserBalance(String userId) {
+
+        // 1. DB에서 조회한 값을 변수에 저장
+        long currentBalance = stockMapper.getBalanceById(userId);
+
+        return currentBalance;
+    }//BlackRabbit 메인페이지 - 7. 예수금 조회 API
+
 }// StockServiceImpl

@@ -106,17 +106,18 @@
     </div>
 
     <div class="flex items-center gap-4 justify-between ">
-        <!-- 로그인 사용자 보유금 -->
+        <!-- 로그인 사용자 보유금 (2026_0706 수정)-->
         <div class="bg-gray-900 px-4 py-1 rounded border border-gray-700 text-right">
             <p class="text-[9px] text-gray-500">AVAILABLE BALANCE</p>
-            <p class="font-bold text-white font-mono">₩ 12,450,000</p>
+            <p id="available-balance" class="font-bold text-white font-mono">₩ 0</p>
         </div>
 
         <!-- 로그아웃 버튼 -->
         <div class="flex items-center gap-3">
             <span id="loginUserId" class="text-xs font-bold text-yellow-400"></span>
 
-            <button class="text-xs text-gray-500 hover:text-red-400 transition font-bold" onclick="logout()">[LOGOUT]</button>
+            <button class="text-xs text-gray-500 hover:text-red-400 transition font-bold" onclick="logout()">[LOGOUT]
+            </button>
         </div>
     </div>
 </header>
@@ -144,10 +145,9 @@
         <!-- 선택 종목명 및 봉 선택-->
         <div class="flex gap-2 mb-2 items-center">
             <span class="text-base font-bold text-white mr-2" id="stock-title">삼성전자</span>
-            <button onclick="updatePeriod('minute', this)" class="period-btn active px-3 py-1 rounded text-sm">1분
-            </button>
+            <button onclick="updatePeriod('minute', this)" class="period-btn px-3 py-1 rounded text-sm">1분</button>
             <button onclick="updatePeriod('hour', this)" class="period-btn px-3 py-1 rounded text-sm">1시간</button>
-            <button onclick="updatePeriod('day', this)" class="period-btn px-3 py-1 rounded text-sm">1일</button>
+            <button onclick="updatePeriod('day', this)" class="period-btn active px-3 py-1 rounded text-sm">1일</button>
             <button onclick="updatePeriod('week', this)" class="period-btn px-3 py-1 rounded text-sm">1주</button>
             <button onclick="updatePeriod('month', this)" class="period-btn px-3 py-1 rounded text-sm">1월</button>
         </div>
@@ -276,21 +276,20 @@
                     ]
                 }
             });
-            chart.updateSeries([{data: formattedData}]); // 서버에서 받은 데이터로 업데이트
+            // 이동평균선 계산
+            const ma5 = calculateMA(5, formattedData);
+            const ma20 = calculateMA(20, formattedData);
+            const ma60 = calculateMA(60, formattedData);
+            const ma120 = calculateMA(120, formattedData);
 
-            // 종목마다 차트 금액 표시선 변경되도록 updateOption 추가
-            chart.updateOptions({
-                series: [{data: formattedData}],
-                yaxis: {
-                    // 기존 스타일 유지
-                    labels: {
-                        style: {colors: '#9CA3AF'},
-                        formatter: (val) => val.toLocaleString()
-                    },
-                    forceNiceScale: true,
-                    decimalsInFloat: 0
-                }
-            }, true, true, true);
+            // [중요] 모든 데이터를 한 번에 업데이트
+            chart.updateSeries([
+                {name: '주가', type: 'candlestick', data: formattedData},
+                {name: '5', type: 'line', data: ma5},
+                {name: '20', type: 'line', data: ma20},
+                {name: '60', type: 'line', data: ma60},
+                {name: '120', type: 'line', data: ma120}
+            ]);
 
             // 종목명 업데이트 (선택 사항)
             // document.getElementById('stock-title').innerText = stockCode;
@@ -361,13 +360,48 @@
     /* * [초기화 및 차트 설정]
          * 페이지 로드 시 차트 객체를 선언하고 렌더링합니다.
          */
+    // 기존 chart 선언 부분을 아래 내용으로 교체하세요.
     const chart = new ApexCharts(document.querySelector("#main-chart"), {
-        series: [{data: []}],
+        series: [
+            {name: '주가', type: 'candlestick', data: []},
+            {name: '5', type: 'line', data: []},
+            {name: '20', type: 'line', data: []},
+            {name: '60', type: 'line', data: []},
+            {name: '120', type: 'line', data: []}
+        ],
         chart: {
             type: 'candlestick',
             height: '100%',
             zoom: {enabled: true},
-            pan: {enabled: true} // 마우스 드래그로 과거 데이터 탐색 가능
+            pan: {enabled: true},
+            // [추가된 부분] 범례를 위해 상단에 여백 확보
+            animations: { enabled: false },
+            toolbar: {show: false}
+        },
+        // [추가된 부분] 범례(Legend) 설정 시작
+        legend: {
+            show: true,
+            position: 'top',      // 상단 배치
+            horizontalAlign: 'right', // 우측 정렬 (요청하신 빨간 영역 쪽)
+            fontSize: '12px',
+            labels: {
+                colors: '#d1d4dc' // 전체적인 테마 색상에 맞춤
+            },
+            markers: {
+                width: 12,
+                height: 12,
+                radius: 0
+            }
+        },
+        // [추가된 부분] 범례 설정 끝
+        stroke: {
+            width: [0, 2, 2, 2, 2],
+            curve: 'smooth',
+            colors: ['#FFFFFF', '#FFD700', '#FF4500', '#00FF00', '#00BFFF']
+        },
+        tooltip: {
+            shared: true,
+            intersect: false
         },
         plotOptions: {candlestick: {colors: {upward: '#ef4444', downward: '#3b82f6'}}},
         xaxis: {labels: {style: {colors: '#9CA3AF'}}},
@@ -375,11 +409,11 @@
             labels: {
                 style: {colors: '#9CA3AF'},
                 formatter: function (val) {
-                    return val.toLocaleString(); // 가격을 1,000 단위로 표시
+                    return val ? val.toLocaleString() : "";
                 }
             },
-            forceNiceScale: true, // [추가] 가격 범위에 맞게 눈금 자동 조정
-            decimalsInFloat: 0    // [추가] 정수 가격이면 소수점 제거
+            forceNiceScale: true,
+            decimalsInFloat: 0
         }
     });
 
@@ -441,7 +475,15 @@
 
         if (response.ok) {
             alert(type === 'buy' ? "매수가 완료되었습니다." : "매도가 완료되었습니다.");
-            renderHoldings(); // 리스트 갱신
+
+            // 1. 보유 종목 리스트 갱신
+            renderHoldings();
+
+            // 2. [추가] 예수금 즉시 갱신 (2026_0706)
+            loadUserBalance();
+
+            // 3. 입력창 초기화 (선택 사항) (2026_0706)
+            document.getElementById('order-quantity').value = '';
         } else {
             alert("거래 처리에 실패했습니다. 잔액 또는 보유 수량을 확인하세요.");
         }
@@ -458,21 +500,60 @@
         currentStockCode = code;
     }
 
+    // [추가] 예수금 정보를 서버에서 가져와 화면에 출력 (2026_0706)
+    async function loadUserBalance() {
+        try {
+            const response = await fetch('/api/userBalance');
+            const data = await response.json();
+            if (data.balance !== undefined) {
+                // 천 단위 콤마 처리
+                document.getElementById('available-balance').innerText = `₩ ${data.balance.toLocaleString()}`;
+            }
+        } catch (error) {
+            console.error("예수금 로드 실패:", error);
+        }
+    }//loadUserBalance()
+
+    // 수정된 이동평균 계산 함수 (기간 파라미터 추가)
+    function calculateMA(dayCount, data) {
+        let result = [];
+        for (let i = 0; i < data.length; i++) {
+            if (i < dayCount - 1) {
+                result.push({x: data[i].x, y: null});
+            } else {
+                let sum = 0;
+                for (let j = 0; j < dayCount; j++) {
+                    // 데이터 배열에서 종가(y[3])를 가져옴
+                    sum += parseFloat(data[i - j].y[3]);
+                }
+                result.push({x: data[i].x, y: (sum / dayCount).toFixed(0)});
+            }
+        }
+        return result;
+    }
+
+
     /* * [페이지 라이프사이클 관리]
          * DOMContentLoaded: HTML 문서가 모두 로드된 직후 실행되는 초기화 블록입니다.
          */
     // [중요] 페이지 로드 시 실행되는 부분 (2026_0626에 추가)
     document.addEventListener('DOMContentLoaded', async () => {
-        renderHoldings(); // 보유 종목 표 출력
-        fetchAndRender();  // 1. Watchlist 서버 데이터 호출
+        // 1. Watchlist 서버 데이터 호출
+        fetchAndRender();
 
-        // 1. 차트 초기화 (초기 데이터는 빈 배열로 시작)
+        // 2. 보유 종목 표 출력
+        renderHoldings();
+
+        // 3. 예수금 불러오기 추가! (2026_0706)
+        loadUserBalance();
+
+        // 4. 차트 초기화 (초기 데이터는 빈 배열로 시작)
         chart.updateSeries([{data: []}]); //(2026_0629 추가)
         chart.render();
         donutChart.render();
 
         // 2. 페이지 로드 시 삼성전자(005930) 기본 차트 로딩 (2026_0629)
-        fetchChartData("005930", "1D");
+        fetchChartData("005930", "day");
 
 
         // 5초마다 데이터 갱신
@@ -483,7 +564,7 @@
     async function logout() {
         try {
             // 서버 측 토큰 무효화 요청
-            await fetch('/api/logout', { method: 'POST' });
+            await fetch('/api/logout', {method: 'POST'});
         } catch (e) {
             console.error("로그아웃 서버 처리 실패");
         } finally {
@@ -500,7 +581,7 @@
     async function loadUserInfo() {
         const res = await fetch('/api/userInfo');
         const data = await res.json();
-        if(data.userId) {
+        if (data.userId) {
             document.getElementById('loginUserId').innerText = data.userId + "님";
         }
     }
