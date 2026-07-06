@@ -164,7 +164,23 @@ public class StockController {
             e.printStackTrace();
             return ResponseEntity.status(500).body("서버 오류 발생");
         }
-    }////BlackRabbit 메인페이지 - 주식 매도
+    }
+
+    /// /BlackRabbit 메인페이지 - 주식 매도
+
+
+    /* 7. 예수금 조회 API */
+    @RequestMapping(value = "/api/userBalance", method = RequestMethod.GET)
+    @ResponseBody
+    public Map<String, Object> getUserBalance(HttpSession session) {
+        String userId = (String) session.getAttribute("userId");
+        // 서비스 단에서 DB의 HC_user 테이블의 balance를 가져오는 메서드 필요
+        long balance = stockService.getUserBalance(userId);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("balance", balance);
+        return response;
+    }
 
 
 }// StockController
