@@ -4,12 +4,15 @@ import com.blackrabbit.common.dto.ResultDTO;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Optional;
 
 @Service("KISService")
 public class KISServiceImpl implements KISService {
@@ -22,10 +25,27 @@ public class KISServiceImpl implements KISService {
 
   @Override
   public ResultDTO getKisToken(KISTokenDTO kisTokenDTO) {
+    // 토큰 발급받기
+    // 로그인/ 회원가입 두가지 경우에서 모두 사용되며
+    // kisTokenDTO 안에 username=id의 존재 유무로 로그인/ 회원가입 분기 판단
+
+    // username 존재: 로그인
+    if (StringUtils.hasText(kisTokenDTO.getUsername())) {
+      // null이 아니고, 길이가 0보다 크고, 공백 문자가 아닌 문자가 하나라도 포함되어 있을 때 true
+      // db에서 key 뽑아오기 -> decrypt
+      Optional <KISTokenDTO> dbInfo =kisMapper.getKisApiKey(kisTokenDTO);
+
+      if (dbInfo.isPresent()) {
+        KISTokenDTO data = dbInfo.get();
+        kisTokenDTO.setAppKey(data.getAppKey());
+        kisTokenDTO.setSecretKey(data.getSecretKey());
+      } else {
+        return new ResultDTO(false, "등록된 KIS 계좌 정보가 없어 KIS 로그인이 불가합니다.", null);
+      }
+    }
+
     String url = "https://openapivts.koreainvestment.com:29443/oauth2/tokenP";
 
-    // 1. 요청 바디 생성 (DTO에서 암호화된 키를 복호화해서 가져온다고 가정)
-    // ※ 실제 구현 시에는 이 부분에서 암호화된 키를 복호화하는 로직이 들어가야 합니다.
     Map<String, String> bodyMap = Map.of(
         "grant_type", "client_credentials",
         "appkey", kisTokenDTO.getAppKey(),

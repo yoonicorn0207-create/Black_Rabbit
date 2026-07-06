@@ -2,6 +2,8 @@ package com.blackrabbit.login;
 
 import com.blackrabbit.common.dto.ResultDTO;
 import com.blackrabbit.common.util.JwtProvider;
+import com.blackrabbit.kis.KISService;
+import com.blackrabbit.kis.KISTokenDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
@@ -14,12 +16,11 @@ import java.util.Map;
 @Controller
 public class LoginController {
 
-  @Autowired
-  LoginMapper loginMapper;
-  @Autowired
-  LoginService loginService;
-  @Autowired
-  JwtProvider jwtProvider;
+  @Autowired LoginMapper loginMapper;
+  @Autowired LoginService loginService;
+  @Autowired JwtProvider jwtProvider;
+  @Autowired KISService kisService;
+
 
 
   // 로그인 메인 페이지 호출
@@ -31,7 +32,20 @@ public class LoginController {
   @RequestMapping(value="/api/userLogin", method = RequestMethod.POST)
   @ResponseBody
   public ResultDTO userLogin(@RequestBody LoginDTO loginData){
-    return loginService.loginUser(loginData);
+
+    // 사용자 로그인 확인
+    ResultDTO loginResult = loginService.loginUser(loginData);
+
+    // 로그인 성공+ KIS api 사용
+    if (loginResult.getState() && loginData.getIsUseKisApi()) {
+      // 토큰 발행하기
+      ResultDTO tokenRes =   kisService.getKisToken(new KISTokenDTO(loginData.getUsername()));
+
+      loginResult.setFailMsg(tokenRes.getFailMsg());
+      loginResult.setState(tokenRes.getState());
+    }
+
+    return loginResult;
   }
 
 

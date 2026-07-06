@@ -4,7 +4,7 @@
 <mapper namespace="com.blackrabbit.kis.KISMapper">
 
   <!-- 유효기간 1일 토큰 발급 및 저장 -->
-  <insert id="upsertKisToken" parameterType="com.blackrabbit.kis.KISTokenResDTO">
+  <insert id="upsertKisToken" parameterType="KISTokenResDTO">
     INSERT INTO HC_api_token (
       user_id, access_token, token_type, expires_at, updated_at
     ) VALUES (
@@ -16,4 +16,13 @@
       expires_at = VALUES(expires_at),
       updated_at = NOW()
   </insert>
+
+
+  <!-- db에 저장해둔 appkey 가져오기 -->
+  <select id="getKisApiKey" parameterType="KISTokenDTO" resultType="KISTokenDTO">
+    SELECT encrypted_app_secret, mock_account_no, encrypted_app_key
+    FROM HC_user
+    WHERE 1=1
+    AND username = #{username}
+  </select>
 </mapper>

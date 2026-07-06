@@ -43,11 +43,11 @@
         <input type="text" placeholder="ex: 500xxxxx-01" class="input mb-2" id="kisAccount"
                name="kis-account" autocomplete="off" />
 
-        <label class="field-label" for="kisAppKey">App Key</label>
+        <label class="field-label" for="kisAppKey">KIS App Key</label>
         <input type="text" placeholder="App Key" class="input mb-2" id="kisAppKey"
                name="kis-app-key" autocomplete="off" />
 
-        <label class="field-label" for="kisSecretKey">Secret Key</label>
+        <label class="field-label" for="kisSecretKey">KIS Secret Key</label>
         <input type="text" placeholder="Secret Key" class="input mb-2" id="kisSecretKey"
                name="kis-secret-key" autocomplete="off" />
 

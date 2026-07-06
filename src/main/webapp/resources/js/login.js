@@ -97,14 +97,24 @@ async function submitSignup() {
   const pwd = document.getElementById('signupPwd').value;
   const repwd = document.getElementById('signupRepwd').value;
   const balance = document.querySelector('select[name="balance"]').value;
-  // 추가 input
-  const kisAccount = document.getElementById('kisAccount').value;
-  const kisAppKey = document.getElementById('kisAppKey').value;
-  const kisSecretKey = document.getElementById('kisSecretKey').value;
+
+  // KIS 검사
+  const kisAccount = document.getElementById('kisAccount').value.trim();
+  const kisAppKey = document.getElementById('kisAppKey').value.trim();
+  const kisSecretKey = document.getElementById('kisSecretKey').value.trim();
+  const hasAnyKis = kisAccount !== "" || kisAppKey !== "" || kisSecretKey !== "";
+  const hasAllKis = kisAccount !== "" && kisAppKey !== "" && kisSecretKey !== "";
+
+
 
   // 1. 전체 빈 값 체크
-  if (!userId || !userEmail || !pwd || !repwd || !balance || !kisAccount || !kisAppKey || !kisSecretKey) {
-    openModal("모든 항목을 입력/선택해주세요.");
+  if (!userId || !userEmail || !pwd || !repwd || !balance) {
+    openModal("필수 항목을 모두 입력/선택해주세요.");
+    return;
+  }
+  // kis 입력값 확인
+  if (hasAnyKis && !hasAllKis) {
+    openModal("KIS 정보 입력 시 모의 계좌번호, App Key, Secret Key를 모두 입력해야 합니다.");
     return;
   }
 
@@ -126,23 +136,29 @@ async function submitSignup() {
     return;
   }
 
-  // 추가) 계좌번호 형식 검사
-  if (!regexAccount.test(kisAccount)) {
+  // kis 계좌번호 형식 검사
+  if (hasAllKis && !regexAccount.test(kisAccount)) {
     openModal("계좌번호 형식이 올바르지 않습니다.<br>(예: 12345678-01)");
     return;
   }
 
   // 토큰 생성 api를 호출하여 입력받은 key들이 유효한지 확인한다
+  if(!!hasAllKis){
+    let successToken =  await getKISToken();
+    if(!successToken){
+      return;
+    }
+  }
 
   // 5. 최종 데이터 전송
   const signupData = {
     username: userId,
     email: userEmail,
     password: pwd,
-    balance: balance,
-    kisAccount: kisAccount,
-    kisAppKey: kisAppKey,
-    kisSecretKey: kisSecretKey
+    balance,
+    kisAccount,
+    kisAppKey,
+    kisSecretKey
   };
 
   try {
@@ -165,6 +181,36 @@ async function submitSignup() {
 
   } catch (e) {
     openModal("서버 연결에 실패했습니다.");
+  }
+}
+
+// kis token 발행 함수
+async function getKISToken(){
+  try {
+
+    const response = await fetch("/api/getKisToken", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        appKey: kisAppKey,
+        secretKey: kisSecretKey
+      })
+    });
+
+    const result = await response.json();
+
+    if (!result.state) {
+      openModal(result.failMsg || "KIS 인증에 실패했습니다.");
+      return false;
+    }
+
+    return true;
+
+  } catch (e) {
+    openModal("KIS 인증 서버와 통신하지 못했습니다.");
+    returnfalse;
   }
 }
 
@@ -196,14 +242,11 @@ async function submitLogin() {
   const loginData = {
     username: document.getElementById('loginId').value,
     password: document.getElementById('loginPwd').value,
+    isUseKisApi : document.getElementById('useKisApi').checked
   };
-  // 체크박스 상태 확인
-  const isUseKisApi = document.getElementById('useKisApi').checked;
-
-  const endpoint = isUseKisApi ? '/api/userLogin/kis' : '/api/userLogin';
 
   try {
-    const response = await fetch(endpoint, {
+    const response = await fetch('/api/userLogin', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(loginData)
