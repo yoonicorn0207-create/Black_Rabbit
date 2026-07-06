@@ -1,0 +1,55 @@
+:root {
+    --glass-bg: rgba(20, 25, 35, 0.85);
+    --accent-yellow: #f7df1e;
+    --text-white: #ffffff;
+    --text-red: #ff3e3e;
+    --input-bg: rgba(255, 255, 255, 0.1);
+}
+
+body { margin: 0; padding: 0; display: grid; height: 100vh; place-items: center; overflow: hidden; font-family: sans-serif; background-color: #0e1118; }
+
+#bg-video { position: fixed; top: 50%; left: 50%; min-width: 100%; min-height: 100%; transform: translateX(-50%) translateY(-50%); z-index: -1; object-fit: cover; }
+
+/* 기본 상태 = 로그인 화면: 작고 컴팩트한 카드 */
+.container { background-color: var(--glass-bg); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); border-radius: 1rem; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); width: 100%; max-width: 420px; height: 480px; position: relative; overflow: hidden; transition: max-width 0.6s ease-in-out, height 0.6s ease-in-out, min-height 0.6s ease-in-out; }
+
+/* right-panel-active = 회원가입 화면: 넓고 큰 카드 (기존 크기 유지) */
+.container.right-panel-active { max-width: 760px; min-height: 950px; height: max-content; }
+
+.logo-text { font-size: 2.2rem; font-weight: 900; margin-bottom: 1rem; letter-spacing: 2px; }
+.text-rabbit { color: var(--text-red); }
+
+.container__form { height: 100%; position: absolute; top: 0; transition: all 0.6s ease-in-out; }
+.container--signin { left: 0; width: 50%; z-index: 2; }
+.container--signup { left: 0; width: 50%; z-index: 1; opacity: 0; }
+.container.right-panel-active .container--signin { transform: translateX(100%); opacity: 0; }
+.container.right-panel-active .container--signup { transform: translateX(100%); opacity: 1; z-index: 5; }
+
+.form { display: flex; align-items: center; justify-content: center; flex-direction: column; padding: 0 2.5rem; height: 100%; box-sizing: border-box; }
+
+.input { background-color: var(--input-bg); border: 1px solid rgba(255,255,255,0.2); padding: 0.7rem 1rem; width: 100%; border-radius: 8px; color: white; font-size: 0.9rem; }
+.input:focus { outline: none; border-color: var(--accent-yellow); }
+
+/* 중복확인 버튼 */
+.btn-check { border: 1px solid rgba(255,255,255,0.5); color: white; padding: 0 1rem; border-radius: 8px; font-size: 0.75rem; white-space: nowrap; height: 42px; transition: 0.3s; }
+.btn-check:hover { background: white; color: black; }
+
+/* 유효성 문구 영역 (밀림 방지용) */
+.val_check { width: 100%; min-height: 1.4rem; font-size: 0.75rem; text-align: left; padding: 0 0.5rem; margin-bottom: 0.2rem; color: #ff3e3e; visibility: hidden; }
+.val_check.show { visibility: visible; }
+
+.btn { background-color: var(--accent-yellow); color: #000; font-weight: 800; border-radius: 50px; padding: 0.8rem 3rem; cursor: pointer; border: none; text-transform: uppercase; margin-top: 1rem; transition: 0.3s; }
+.btn:hover { box-shadow: 0 0 15px var(--accent-yellow); }
+
+.btn-overlay { background: transparent; border: 2px solid var(--text-white); color: var(--text-white); padding: 1rem 3rem; border-radius: 50px; }
+.btn-overlay:hover { background: var(--text-white); color: #000; }
+
+.container__overlay { height: 100%; left: 50%; overflow: hidden; position: absolute; top: 0; transition: transform 0.6s ease-in-out; width: 50%; z-index: 100; }
+.container.right-panel-active .container__overlay { transform: translateX(-100%); }
+.overlay { background: linear-gradient(135deg, rgba(20, 25, 35, 0.95), rgba(40, 50, 70, 0.95)); height: 100%; width: 200%; display: flex; position: relative; left: -100%; transition: transform 0.6s ease-in-out; }
+.container.right-panel-active .overlay { transform: translateX(50%); }
+.overlay__panel { width: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; padding: 0 2rem; }
+
+/* 필수 입력값 라벨 */
+.field-label { width: 100%; display: flex; align-items: center; gap: 4px; font-size: 0.78rem; color: var(--text-white); opacity: 0.85; text-align: left; margin-bottom: 0.3rem; }
+.required-mark { color: var(--text-red); font-weight: 700; }
