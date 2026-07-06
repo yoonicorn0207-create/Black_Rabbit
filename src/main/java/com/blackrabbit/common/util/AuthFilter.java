@@ -7,10 +7,14 @@ import javax.servlet.http.HttpSession;
 import java.io.IOException;
 
 public class AuthFilter implements Filter {
+
   // 보호가 필요하지 않은 라우터 리스트- 화이트리스트 방식으로 진행
   private static final String[] PUBLIC_PATHS = {
       "/login",
       "/resources",
+      "/api/userLogin",     // 로그인 처리
+      "/api/userSignup",    // 회원가입 처리
+      "/api/signinDup",
   };
 
   private boolean isPublic(String uri) {
