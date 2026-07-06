@@ -9,8 +9,11 @@ import java.io.IOException;
 public class AuthFilter implements Filter {
   // 보호가 필요하지 않은 라우터 리스트- 화이트리스트 방식으로 진행
   private static final String[] PUBLIC_PATHS = {
-      "/login",
-      "/resources",
+          "/login",
+          "/resources",
+          "/api/userLogin",     // 로그인 처리
+          "/api/userSignup",    // 회원가입 처리
+          "/api/signinDup",
   };
 
   private boolean isPublic(String uri) {
@@ -21,7 +24,7 @@ public class AuthFilter implements Filter {
   }
 
   public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
-      throws IOException, ServletException { // ServerException 대신 ServletException 사용
+          throws IOException, ServletException { // ServerException 대신 ServletException 사용
 
     HttpServletRequest httpRequest = (HttpServletRequest) request;
     HttpServletResponse httpResponse = (HttpServletResponse) response;
@@ -48,6 +51,6 @@ public class AuthFilter implements Filter {
 //      }
 
     // 조건에 해당하지 않거나, 권한이 확인된 경우 요청을 통과시킴
-      chain.doFilter(request,response);
+    chain.doFilter(request,response);
   }
 }
