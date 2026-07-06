@@ -26,6 +26,7 @@
 		<!--	HttpSession 사용을 위한 인터셉터 설정 파일 추가	-->
 		<mvc:interceptor>
 			<mvc:mapping path="/api/**" />
+			<!-- exclude-mappin에 선언된 api들은 interceptor를 타지 않아 토큰 체킹 안함	-->
 			<mvc:exclude-mapping path="/api/login" />
 			<mvc:exclude-mapping path="/api/userLogin" />
 			<mvc:exclude-mapping path="/api/auth/refresh" />

@@ -240,7 +240,7 @@ def insert_stock_minute2_bulk(minute2_tuples):
 
 
 ## =========== 반복문 처리 =================
-TIMEOUT_MINUTES = 25  # 30분 크론 기준, 25분 안에 강제 종료
+TIMEOUT_MINUTES = 2500000  # 30분 크론 기준, 25분 안에 강제 종료
 
 def get_itemchartprice_data():
     """

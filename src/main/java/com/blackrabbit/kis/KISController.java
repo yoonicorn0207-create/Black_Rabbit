@@ -13,6 +13,7 @@ public class KISController {
 
   @Autowired KISService kisService;
 
+  // kis api 호출을 위한 token 발급 및 저장 로직
   @RequestMapping(value="/api/getKisToken", method = RequestMethod.POST)
   @ResponseBody
   public ResultDTO getKisToken(@RequestBody KISTokenDTO kisTokenDTO){

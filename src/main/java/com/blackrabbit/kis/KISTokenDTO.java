@@ -1,26 +1,26 @@
 package com.blackrabbit.kis;
 
 public class KISTokenDTO {
-  private String kisAppKey;
-  private String kisSecretKey;
+  private String appKey;
+  private String secretKey;
 
   public KISTokenDTO(){};
-  public KISTokenDTO(String kisAppKey, String kisSecretKey){this.kisAppKey = kisAppKey; this.kisSecretKey = kisSecretKey;};
+  public KISTokenDTO(String appKey, String secretKey){this.appKey = appKey; this.secretKey = secretKey;};
 
   // getter/ setter
-  public String getKisAppKey() {
-    return kisAppKey;
+  public String getAppKey() {
+    return appKey;
   }
 
-  public void setKisAppKey(String kisAppKey) {
-    this.kisAppKey = kisAppKey;
+  public void setAppKey(String appKey) {
+    this.appKey = appKey;
   }
 
-  public String getKisSecretKey() {
-    return kisSecretKey;
+  public String getSecretKey() {
+    return secretKey;
   }
 
-  public void setKisSecretKey(String kisSecretKey) {
-    this.kisSecretKey = kisSecretKey;
+  public void setSecretKey(String secretKey) {
+    this.secretKey = secretKey;
   }
 }

@@ -9,6 +9,7 @@ public class ResultDTO<T> {
   public ResultDTO(){}
   public ResultDTO(Boolean state){this.state = state;}
   public ResultDTO(Boolean state, String failMsg){this.state = state; this.failMsg = failMsg;}
+  public ResultDTO(Boolean state, String failMsg, T data){this.state = state; this.failMsg = failMsg; this.data= data;}
 
   // getter/ setter
   public Boolean getState() {
