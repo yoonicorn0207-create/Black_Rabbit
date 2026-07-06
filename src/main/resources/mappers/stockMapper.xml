@@ -144,4 +144,12 @@
         WHERE id = #{userId}
     </update>
 
+
+    <!-- 7. 예수금 조회 API (2026_0706 추가) -->
+    <select id="getBalanceById" parameterType="string" resultType="long">
+        SELECT balance
+        FROM HC_user
+        WHERE id = #{userId}
+    </select>
+
 </mapper>

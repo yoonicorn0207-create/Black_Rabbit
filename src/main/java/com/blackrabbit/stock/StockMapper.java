@@ -54,5 +54,7 @@ public interface StockMapper {
 
     void addBalance(@Param("userId") String userId, @Param("amount") int amount);
 
+    /* 7. 예수금 조회 API */
+    long getBalanceById(@Param("userId") String userId);
 
 }// StockMapper
