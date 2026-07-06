@@ -9,20 +9,17 @@ import java.io.IOException;
 public class AuthFilter implements Filter {
 
   // 보호가 필요하지 않은 라우터 리스트- 화이트리스트 방식으로 진행
-  private static final String[] PUBLIC_PATHS = {
-      "/login",
-      "/resources",
-      "/api/userLogin",     // 로그인 처리
-      "/api/userSignup",    // 회원가입 처리
-      "/api/signinDup",
-  };
+  // 하위 경로 전체 허용
+  private static final String[] PUBLIC_PREFIX_PATHS = { "/login", "/resources" };
+  // 정확히 일치할 때만
+  private static final String[] PUBLIC_EXACT_PATHS  = { "/api/userLogin", "/api/userSignup", "/api/signinDup" };
 
   private boolean isPublic(String uri) {
-    for (String path : PUBLIC_PATHS) {
-      if (uri.startsWith(path)) return true;
-    }
+    for (String p : PUBLIC_PREFIX_PATHS) if (uri.startsWith(p)) return true;
+    for (String p : PUBLIC_EXACT_PATHS) if (uri.equals(p)) return true;
     return false;
   }
+
 
   public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
       throws IOException, ServletException { // ServerException 대신 ServletException 사용
