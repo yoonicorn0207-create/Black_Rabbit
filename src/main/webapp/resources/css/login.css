@@ -35,7 +35,8 @@ body {
     position: relative;
     overflow: hidden;
 
-    width: 420px;
+    /*width: 420px;*/
+    width: 1200px;
     height: 480px;
 
     background: var(--glass-bg);
@@ -54,7 +55,6 @@ body {
    회원가입
    ============================ */
 .container.right-panel-active {
-    width: 760px;
     height: 950px;
 }
 
@@ -255,6 +255,7 @@ body {
 
 .overlay__panel {
     width: 50%;
+    max-width: 750px;
     height: 100%;
 
     display: flex;

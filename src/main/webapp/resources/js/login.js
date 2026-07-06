@@ -177,6 +177,10 @@ function resetSignupForm() {
   document.getElementById('signupRepwd').value = "";
   document.querySelector('select[name="balance"]').value = "";
 
+  document.getElementById('kisAccount').value = "";
+  document.getElementById('kisAppKey').value = "";
+  document.getElementById('kisSecretKey').value = "";
+
   // 유효성 검사 문구 숨기기 및 상태 초기화
   isIdChecked = false;
   isEmailChecked = false;
@@ -191,11 +195,15 @@ function resetSignupForm() {
 async function submitLogin() {
   const loginData = {
     username: document.getElementById('loginId').value,
-    password: document.getElementById('loginPwd').value
+    password: document.getElementById('loginPwd').value,
   };
+  // 체크박스 상태 확인
+  const isUseKisApi = document.getElementById('useKisApi').checked;
+
+  const endpoint = isUseKisApi ? '/api/userLogin/kis' : '/api/userLogin';
 
   try {
-    const response = await fetch('/api/userLogin', {
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(loginData)
@@ -204,16 +212,14 @@ async function submitLogin() {
     const result = await response.json();
 
     if (result.state) {
-      // 서버에서 받은 토큰 저장
       localStorage.setItem("accessToken", result.data.accessToken);
       localStorage.setItem("refreshToken", result.data.refreshToken);
-
-      window.location.href = "/stockMain"; // 메인 페이지 이동 (컨텍스트 경로는 아래 주석 참고)
+      window.location.href = "/stockMain";
     } else {
       openModal(result.failMsg || "로그인에 실패하였습니다.");
     }
   } catch (e) {
-    openModal("서버 연결에 실패했습니다.");
+    openModal(`로그인에 실패했습니다. ${e}`);
   }
 }
 

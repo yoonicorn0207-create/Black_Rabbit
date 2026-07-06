@@ -17,6 +17,7 @@ public class KISController {
   @RequestMapping(value="/api/getKisToken", method = RequestMethod.POST)
   @ResponseBody
   public ResultDTO getKisToken(@RequestBody KISTokenDTO kisTokenDTO){
+
     return kisService.getKisToken(kisTokenDTO);
   }
 }
