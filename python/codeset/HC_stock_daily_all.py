@@ -11,6 +11,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__)) if '__file__' in locals
 dotenv_path = os.path.abspath(os.path.join(current_dir, "..", "dataset", "config", ".env"))
 load_dotenv(dotenv_path=dotenv_path, override=True)
 
+
 def get_db_connection():
     return pymysql.connect(
         host=os.getenv("DB_HOST"), user=os.getenv("DB_USER"),
@@ -18,11 +19,14 @@ def get_db_connection():
         port=3306, charset='utf8mb4', cursorclass=pymysql.cursors.DictCursor
     )
 
+
 def getKisToken():
     url = f"{os.getenv('KIS_URL')}/oauth2/tokenP"
-    body = {"grant_type": "client_credentials", "appkey": os.getenv("KIS_APP_KEY"), "appsecret": os.getenv("KIS_APP_SECRET")}
+    body = {"grant_type": "client_credentials", "appkey": os.getenv("KIS_APP_KEY"),
+            "appsecret": os.getenv("KIS_APP_SECRET")}
     response = requests.post(url, headers={"content-type": "application/json"}, data=json.dumps(body))
     return response.json().get("access_token")
+
 
 def get_stock_list():
     conn = get_db_connection()
@@ -33,28 +37,40 @@ def get_stock_list():
     finally:
         conn.close()
 
+
 def get_last_collected_dates():
     conn = get_db_connection()
     try:
         with conn.cursor() as cursor:
-            cursor.execute("SELECT stck_shrn_iscd, MAX(stck_bsop_date) as last_date FROM HC_stock_daily2 GROUP BY stck_shrn_iscd")
+            cursor.execute(
+                "SELECT stck_shrn_iscd, MAX(stck_bsop_date) as last_date FROM HC_stock_daily2 GROUP BY stck_shrn_iscd")
             return {row['stck_shrn_iscd']: row['last_date'] for row in cursor.fetchall()}
     finally:
         conn.close()
+
 
 def save_to_mysql(table_name, data_dict):
     conn = get_db_connection()
     try:
         with conn.cursor() as cursor:
-            keys = list(data_dict.keys())
+            # DB 테이블의 실제 컬럼명 조회
+            cursor.execute(f"DESCRIBE {table_name}")
+            actual_columns = [row['Field'] for row in cursor.fetchall()]
+
+            # DB 컬럼에 존재하는 데이터만 필터링하여 오타/불필요 키 제거
+            filtered_data = {k: v for k, v in data_dict.items() if k in actual_columns}
+
+            keys = list(filtered_data.keys())
             cols = ", ".join([f"`{k}`" for k in keys])
-            vals = [data_dict[k] for k in keys]
+            vals = [filtered_data[k] for k in keys]
             update_stmt = ", ".join([f"`{k}`=VALUES(`{k}`)" for k in keys])
+
             sql = f"INSERT INTO {table_name} ({cols}) VALUES ({', '.join(['%s'] * len(keys))}) ON DUPLICATE KEY UPDATE {update_stmt}"
             cursor.execute(sql, vals)
         conn.commit()
     finally:
         conn.close()
+
 
 def fetch_and_store(stock_code, start_date_obj):
     token = getKisToken()
@@ -79,10 +95,18 @@ def fetch_and_store(stock_code, start_date_obj):
             "FID_PERIOD_DIV_CODE": "D", "FID_ORG_ADJ_PRC": "0"
         }
 
-        response = requests.get(f"{os.getenv('KIS_URL')}/uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice",
-                                headers=headers, params=params)
+        response = requests.get(
+            f"{os.getenv('KIS_URL')}/uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice",
+            headers=headers, params=params)
         data = response.json()
 
+        # 1. HC_stock_daily1에 일별 데이터(output1) upsert
+        output1_data = data.get('output1')
+        if output1_data:
+            output1_data['stck_shrn_iscd'] = stock_code
+            save_to_mysql("HC_stock_daily1", output1_data)
+
+        # 2. HC_stock_daily2에 일별 데이터(output2) upsert (기존 로직 유지)
         if data.get("rt_cd") == "0":
             for row in data.get('output2', []):
                 row['stck_shrn_iscd'] = stock_code
@@ -90,6 +114,7 @@ def fetch_and_store(stock_code, start_date_obj):
 
         current_end = current_start - timedelta(days=1)
         time.sleep(0.5)
+
 
 if __name__ == "__main__":
     all_codes = get_stock_list()
@@ -110,12 +135,12 @@ if __name__ == "__main__":
             mode = "초기 전체 수집"
 
         if start_date <= datetime.now():
-            print(f"[{i+1}/{len(all_codes)}] {code} [{mode}] 시작 (범위: {start_date.strftime('%Y-%m-%d')} ~ 현재)")
+            print(f"[{i + 1}/{len(all_codes)}] {code} [{mode}] 시작 (범위: {start_date.strftime('%Y-%m-%d')} ~ 현재)")
             try:
                 fetch_and_store(code, start_date)
             except Exception as e:
                 print(f"!!! [{code}] 에러 발생: {e}")
         else:
-            print(f"[{i+1}/{len(all_codes)}] {code} - 최신 데이터 보유 중")
+            print(f"[{i + 1}/{len(all_codes)}] {code} - 최신 데이터 보유 중")
 
-        time.sleep(1.0) # API 과부하 방지
+        time.sleep(1.0)  # API 과부하 방지
