@@ -13,6 +13,6 @@
             <label for="useKisApi" class="ml-2 text-white text-sm cursor-pointer">한국투자증권 모의투자 사용</label>
         </div>
 
-        <button class="btn" onclick="submitLogin()">로그인</button>
+        <button class="btn" onclick="submitLogin(event)">로그인</button>
     </form>
 </div>

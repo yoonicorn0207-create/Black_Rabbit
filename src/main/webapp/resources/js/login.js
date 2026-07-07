@@ -296,7 +296,9 @@ function resetSignupForm() {
 }
 
 // ============================ 로그인 ============================
-async function submitLogin() {
+async function submitLogin(event) {
+  const btnEl = event.target; // 클릭된 버튼 요소
+
   const loginData = {
     username: document.getElementById('loginId').value,
     password: document.getElementById('loginPwd').value,
@@ -304,6 +306,9 @@ async function submitLogin() {
   };
 
   try {
+    // api 호출로 버튼 로딩 시작
+    toggleBtnLoading(btnEl, true);
+
     const response = await fetch('/api/userLogin', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -321,6 +326,8 @@ async function submitLogin() {
     }
   } catch (e) {
     openModal(`로그인에 실패했습니다. ${e}`);
+  }finally{
+    toggleBtnLoading(btnEl, false);
   }
 }
 
