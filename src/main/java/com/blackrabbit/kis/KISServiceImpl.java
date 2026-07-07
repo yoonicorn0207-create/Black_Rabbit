@@ -26,7 +26,7 @@ public class KISServiceImpl implements KISService {
   @Override
   public ResultDTO getKisToken(KISTokenDTO kisTokenDTO) {
     // 토큰 발급받기
-    // 로그인/ 회원가입 두가지 경우에서 모두 사용되며
+    // 로그인/ 회원가입 두가지 경우에서 사용되는 함수이며
     // kisTokenDTO 안에 username=id의 존재 유무로 로그인/ 회원가입 분기 판단
 
     // username 존재: 로그인
@@ -39,6 +39,7 @@ public class KISServiceImpl implements KISService {
         KISTokenDTO data = dbInfo.get();
         kisTokenDTO.setAppKey(data.getAppKey());
         kisTokenDTO.setSecretKey(data.getSecretKey());
+
       } else {
         return new ResultDTO(false, "등록된 KIS 계좌 정보가 없어 KIS 로그인이 불가합니다.", null);
       }
@@ -64,16 +65,27 @@ public class KISServiceImpl implements KISService {
       HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
       if (response.statusCode() == 200) {
-        // 2. 응답 데이터를 DTO로 변환
         KISTokenResDTO resDto = objectMapper.readValue(response.body(), KISTokenResDTO.class);
 
-        // 3. UserId 할당 (DB 저장을 위해 필요)
-//        resDto.setUserId(kisTokenDTO.getUserId());
+        // [핵심 로직] 로그인일 때만 DB 저장을 수행한다.
+        // 회원가입 시에는 이미 kisTokenDTO.getUsername()이 비어있거나,
+        // 저장을 원치 않는 상황이므로 이 블록을 타지 않게 됩니다.
+        if (StringUtils.hasText(kisTokenDTO.getUsername())) {
 
-        // 4. DB에 Upsert (저장/갱신)
-        kisMapper.upsertKisToken(resDto);
+          Integer userId = kisMapper.getUserIdxByUsername(kisTokenDTO.getUsername());
 
-        return new ResultDTO(true, "토큰 발급 및 저장 성공", resDto);
+          if (userId != null) {
+            resDto.setUserId(userId);
+            kisMapper.upsertKisToken(resDto);
+            return new ResultDTO(true, "토큰 발급 및 DB 저장 성공", resDto);
+          } else {
+            return new ResultDTO(false, "사용자를 찾을 수 없습니다.", null);
+          }
+        }
+
+        // 회원가입인 경우: 저장은 안 하고 토큰 정보만 클라이언트에게 전달
+        return new ResultDTO(true, "토큰 발급 성공", resDto);
+
       } else {
         return new ResultDTO(false, "API 호출 실패: " + response.body(), null);
       }

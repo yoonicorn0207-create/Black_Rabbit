@@ -1,3 +1,35 @@
+// ======================= 버튼 클릭 -> api 호출 -> 응답 올때까지 재클릭 불가능하게끔 =======================
+/**
+ * 버튼 로딩 상태 토글
+ * @param {HTMLButtonElement} btnEl - 버튼 요소
+ * @param {boolean} isLoading - 로딩 여부
+ * @param {string} originalText - 버튼 원래 텍스트
+ * 버튼 로딩 상태 토글 (최소 700ms 보장)
+ */
+function toggleBtnLoading(btnEl, isLoading, originalText = "전송") {
+  if (isLoading) {
+    btnEl.disabled = true;
+    btnEl.dataset.originalText = btnEl.innerText;
+    btnEl.innerText = "처리 중...";
+    btnEl.style.opacity = "0.7";
+    btnEl.style.cursor = "not-allowed";
+    btnEl.dataset.startTime = Date.now(); // 시작 시간 저장
+  } else {
+    // 현재까지 흐른 시간 계산
+    const startTime = parseInt(btnEl.dataset.startTime || 0);
+    const elapsed = Date.now() - startTime;
+    const remainingTime = Math.max(0, 700 - elapsed); // 700ms까지 남은 시간
+
+    // 남은 시간만큼 대기 후 복구
+    setTimeout(() => {
+      btnEl.disabled = false;
+      btnEl.innerText = btnEl.dataset.originalText || originalText;
+      btnEl.style.opacity = "1";
+      btnEl.style.cursor = "pointer";
+    }, remainingTime);
+  }
+}
+
 // ============================ 패널 전환 (로그인 <-> 회원가입) ============================
 const container = document.getElementById("container");
 document.getElementById("signUp").onclick = () => container.classList.add("right-panel-active");
@@ -21,7 +53,7 @@ let isEmailChecked = false;
 const regexId = /^[a-zA-Z0-9_-]{5,20}$/;
 const regexPwd = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d!\"\#\$%&'()*+,\-./:;<=>?@\[\\\]^_`{|}~]{8,20}$/;
 const regexEmail = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-const regexAccount = /^\d{8}-\d{2}$/; // 예: 12345678-01
+const regexAccount = /^\d{8}$/; // 예: 12345678
 
 // 실시간 검사 이벤트 리스너 추가
 document.getElementById('userId').addEventListener('input', () => {
@@ -56,42 +88,56 @@ function checkPasswordMatch() {
 }
 
 // ============================ 중복 확인 api 호출 함수 ============================
-async function checkDuplicate(type) {
+async function checkDuplicate(type, event) {
+  const btnEl = event.target;
+
   const isId = type === 'id';
   const inputEl = document.getElementById(isId ? 'userId' : 'userEmail');
   const val = inputEl.value;
   const msgId = isId ? 'idValidationText' : 'emailValidationText';
 
-  // 1. 형식 검사 (통과 못하면 바로 모달)
-  const isValid = isId ? regexId.test(val) : regexEmail.test(val);
-  if (!isValid) {
-    openModal(isId ? "아이디 형식을 확인해주세요.<br>(5~20자의 영문, 숫자, _, -)" : "올바른 이메일 형식이 아닙니다.");
-    return;
-  }
+  try{
+    toggleBtnLoading(btnEl, true);
 
-  // 2. 서버 중복 검사 호출
-  try {
-    const response = await fetch(`/api/signinDup`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type: type, value: val })
-    });
-    const data = await response.json();
-
-    if (data.state) {
-      showValidation(msgId, true, "사용 가능한 " + (isId ? "아이디" : "이메일") + "입니다.", false);
-      if (isId) isIdChecked = true;
-      else isEmailChecked = true;
-    } else {
-      showValidation(msgId, true, data.failMsg, true);
+    // 1. 형식 검사 (통과 못하면 바로 모달)
+    const isValid = isId ? regexId.test(val) : regexEmail.test(val);
+    if (!isValid) {
+      openModal(isId ? "아이디 형식을 확인해주세요.<br>(5~20자의 영문, 숫자, _, -)" : "올바른 이메일 형식이 아닙니다.");
+      return;
     }
-  } catch (e) {
-    openModal("서버 연결에 실패했습니다.");
+
+    // 2. 서버 중복 검사 호출
+    try {
+      const response = await fetch(`/api/signinDup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: type, value: val })
+      });
+      const data = await response.json();
+
+      if (data.state) {
+        showValidation(msgId, true, "사용 가능한 " + (isId ? "아이디" : "이메일") + "입니다.", false);
+        if (isId) isIdChecked = true;
+        else isEmailChecked = true;
+      } else {
+        showValidation(msgId, true, data.failMsg, true);
+      }
+    } catch (e) {
+      openModal("서버 연결에 실패했습니다.");
+    }
+  }catch(error){
+    console.error(error)
+  }finally{
+    toggleBtnLoading(btnEl, false);
   }
 }
 
 // ============================ 회원가입 ============================
-async function submitSignup() {
+async function submitSignup(event) {
+  const btnEl = event.target; // 클릭된 버튼 요소
+
+
+
   const userId = document.getElementById('userId').value;
   const userEmail = document.getElementById('userEmail').value;
   const pwd = document.getElementById('signupPwd').value;
@@ -106,86 +152,100 @@ async function submitSignup() {
   const hasAllKis = kisAccount !== "" && kisAppKey !== "" && kisSecretKey !== "";
 
 
+  try{
+    // api 호출로 버튼 로딩 시작
+    toggleBtnLoading(btnEl, true);
 
-  // 1. 전체 빈 값 체크
-  if (!userId || !userEmail || !pwd || !repwd || !balance) {
-    openModal("필수 항목을 모두 입력/선택해주세요.");
-    return;
-  }
-  // kis 입력값 확인
-  if (hasAnyKis && !hasAllKis) {
-    openModal("KIS 정보 입력 시 모의 계좌번호, App Key, Secret Key를 모두 입력해야 합니다.");
-    return;
-  }
-
-  // 2. 아이디/이메일 중복 확인 여부 체크
-  if (!isIdChecked || !isEmailChecked) {
-    openModal("아이디 또는 이메일 중복 확인을<br>먼저 진행해주세요.");
-    return;
-  }
-
-  // 3. 비밀번호 유효성 검사 (형식 확인)
-  if (!regexPwd.test(pwd)) {
-    openModal("비밀번호 형식이 올바르지 않습니다.<br>(영문/숫자 포함 8~20자)");
-    return;
-  }
-
-  // 4. 비밀번호 일치 확인
-  if (pwd !== repwd) {
-    openModal("비밀번호가 일치하지 않습니다.");
-    return;
-  }
-
-  // kis 계좌번호 형식 검사
-  if (hasAllKis && !regexAccount.test(kisAccount)) {
-    openModal("계좌번호 형식이 올바르지 않습니다.<br>(예: 12345678-01)");
-    return;
-  }
-
-  // 토큰 생성 api를 호출하여 입력받은 key들이 유효한지 확인한다
-  if(!!hasAllKis){
-    let successToken =  await getKISToken();
-    if(!successToken){
+    // 1. 전체 빈 값 체크
+    if (!userId || !userEmail || !pwd || !repwd || !balance) {
+      openModal("필수 항목을 모두 입력/선택해주세요.");
       return;
     }
-  }
-
-  // 5. 최종 데이터 전송
-  const signupData = {
-    username: userId,
-    email: userEmail,
-    password: pwd,
-    balance,
-    kisAccount,
-    kisAppKey,
-    kisSecretKey
-  };
-
-  try {
-    const response = await fetch('/api/userSignup', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(signupData)
-    });
-    const result = await response.json();
-
-    if (result.state) {
-      // 화면 로그인 폼 전환
-      container.classList.remove("right-panel-active");
-
-      // 회원가입 input 초기화
-      resetSignupForm();
+    // kis 입력값 확인
+    if (hasAnyKis && !hasAllKis) {
+      openModal("KIS 정보 입력 시 모의 계좌번호, App Key, Secret Key를 모두 입력해야 합니다.");
+      return;
     }
 
-    openModal(result.failMsg);
+    // 2. 아이디/이메일 중복 확인 여부 체크
+    if (!isIdChecked || !isEmailChecked) {
+      openModal("아이디 또는 이메일 중복 확인을<br>먼저 진행해주세요.");
+      return;
+    }
 
-  } catch (e) {
-    openModal("서버 연결에 실패했습니다.");
+    // 3. 비밀번호 유효성 검사 (형식 확인)
+    if (!regexPwd.test(pwd)) {
+      openModal("비밀번호 형식이 올바르지 않습니다.<br>(영문/숫자 포함 8~20자)");
+      return;
+    }
+
+    // 4. 비밀번호 일치 확인
+    if (pwd !== repwd) {
+      openModal("비밀번호가 일치하지 않습니다.");
+      return;
+    }
+
+    // kis 계좌번호 형식 검사
+    if (hasAllKis && !regexAccount.test(kisAccount)) {
+      openModal("계좌번호 형식이 올바르지 않습니다.<br>(예: 12345678-01)");
+      return;
+    }
+
+
+    // 토큰 생성 api를 호출하여 입력받은 key들이 유효한지 확인한다
+    let isValidAppKey = {};
+
+    if(!!hasAllKis){
+      isValidAppKey = await getKISToken(kisAppKey, kisSecretKey);
+    }
+
+    if(!isValidAppKey.state){
+      openModal(isValidAppKey?.failMsg);
+      return;
+    }
+
+    // 5. 최종 데이터 전송
+    const signupData = {
+      username: userId,
+      email: userEmail,
+      password: pwd,
+      balance,
+      mockAccount:kisAccount,
+      appKey:kisAppKey,
+      appSecret:kisSecretKey,
+      tokenData: !!hasAllKis ? isValidAppKey.data : null,
+    };
+
+    try {
+      const response = await fetch('/api/userSignup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(signupData)
+      });
+      const result = await response.json();
+
+      if (result.state) {
+        // 화면 로그인 폼 전환
+        container.classList.remove("right-panel-active");
+
+        // 회원가입 input 초기화
+        resetSignupForm();
+      }
+
+      openModal(result.failMsg);
+
+    } catch (e) {
+      openModal("서버 연결에 실패했습니다.");
+    }
+  }catch(error){
+    console.log(error);
+  }finally{
+    toggleBtnLoading(btnEl, false);
   }
 }
 
 // kis token 발행 함수
-async function getKISToken(){
+async function getKISToken(kisAppKey, kisSecretKey){
   try {
 
     const response = await fetch("/api/getKisToken", {
@@ -203,14 +263,12 @@ async function getKISToken(){
 
     if (!result.state) {
       openModal(result.failMsg || "KIS 인증에 실패했습니다.");
-      return false;
     }
-
-    return true;
+    return result;
 
   } catch (e) {
     openModal("KIS 인증 서버와 통신하지 못했습니다.");
-    returnfalse;
+    return result;
   }
 }
 

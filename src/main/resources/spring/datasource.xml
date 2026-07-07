@@ -9,7 +9,8 @@
 
     <!-- properties 파일 읽기 -->
     <context:property-placeholder
-            location="classpath:config/datasource.properties"/>
+            location="classpath:config/datasource.properties"
+            ignore-unresolvable="true"/>
 
     <!-- DataSource 설정 (DB 연결 정보) -->
     <bean id="dataSource"

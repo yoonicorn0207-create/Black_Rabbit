@@ -12,7 +12,11 @@ public class AuthFilter implements Filter {
   // 하위 경로 전체 허용
   private static final String[] PUBLIC_PREFIX_PATHS = { "/login", "/resources" };
   // 정확히 일치할 때만
-  private static final String[] PUBLIC_EXACT_PATHS  = { "/api/userLogin", "/api/userSignup", "/api/signinDup" };
+  private static final String[] PUBLIC_EXACT_PATHS  = {
+      "/api/userLogin",
+      "/api/userSignup",
+      "/api/signinDup",
+      "/api/getKisToken" };
 
   private boolean isPublic(String uri) {
     for (String p : PUBLIC_PREFIX_PATHS) if (uri.startsWith(p)) return true;

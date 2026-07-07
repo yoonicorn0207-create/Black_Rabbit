@@ -1,5 +1,7 @@
 package com.blackrabbit.signup;
 
+import com.blackrabbit.kis.KISTokenResDTO;
+
 import java.math.BigInteger;
 
 public class SignupDTO {
@@ -11,6 +13,7 @@ public class SignupDTO {
   private String mockAccount;
   private String appKey;
   private String appSecret;
+  private KISTokenResDTO tokenData;
 
   public SignupDTO(){}
   public SignupDTO(String username, String password, String email, BigInteger balance){
@@ -80,4 +83,6 @@ public class SignupDTO {
   public void setAppSecret(String appSecret) {
     this.appSecret = appSecret;
   }
+  public KISTokenResDTO getTokenData() { return tokenData; }
+  public void setTokenData(KISTokenResDTO tokenData) { this.tokenData = tokenData; }
 }

@@ -51,14 +51,8 @@ def initialize_all_tables():
            (
                20
            ) COMMENT '모의투자 계좌번호',
-               encrypted_app_key VARCHAR
-           (
-               255
-           ) COMMENT '암호화된 AppKey',
-               encrypted_app_secret VARCHAR
-           (
-               255
-           ) COMMENT '암호화된 SecretKey',
+               encrypted_app_key TEXT COMMENT '암호화된 AppKey',
+               encrypted_app_secret TEXT COMMENT '암호화된 SecretKey',
                last_login_at TIMESTAMP NULL COMMENT '마지막 로그인 시간',
                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '가입일',
                updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP

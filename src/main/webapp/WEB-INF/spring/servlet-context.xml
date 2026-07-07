@@ -20,6 +20,7 @@
 			<mvc:exclude-mapping path="/api/auth/refresh" />
 			<mvc:exclude-mapping path="/api/signinDup" />
 			<mvc:exclude-mapping path="/api/userSignup" />
+			<mvc:exclude-mapping path="/api/getKisToken" />
 			<bean class="com.blackrabbit.common.util.JwtInterceptor" />
 		</mvc:interceptor>
 
@@ -32,9 +33,15 @@
 			<mvc:exclude-mapping path="/api/auth/refresh" />
 			<mvc:exclude-mapping path="/api/signinDup" />
 			<mvc:exclude-mapping path="/api/userSignup" />
+			<mvc:exclude-mapping path="/api/getKisToken" />
 			<bean class="com.blackrabbit.common.util.SessionCheckInterceptor" />
 		</mvc:interceptor>
 	</mvc:interceptors>
+
+	<!-- properties 파일 읽기 -->
+	<context:property-placeholder
+			location="classpath:config/application.properties"
+			ignore-unresolvable="true"/>
 
 	<!-- 정적 리소스 정상 출력을 위한 설정 추가	-->
 	<context:component-scan

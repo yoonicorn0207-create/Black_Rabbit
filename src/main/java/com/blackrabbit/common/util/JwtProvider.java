@@ -3,6 +3,7 @@ package com.blackrabbit.common.util;
 import io.jsonwebtoken.Jwt;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.Date;
@@ -10,7 +11,8 @@ import java.util.Date;
 @Component
 public class JwtProvider {
   // 토큰 서명을 위해 서버가 사용하는 비밀 키
-  private final String SECRET_KEY = "kopo-2026-blackrabbit-HTS-HC-secret-key";
+  @Value("${jwt.secret.key}")
+  private String SECRET_KEY;
 
   // 1. 액세스 토큰 생성
   public String createAccessToken(String username) {
