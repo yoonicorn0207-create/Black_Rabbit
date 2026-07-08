@@ -7,6 +7,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpSession;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -180,7 +181,22 @@ public class StockController {
         Map<String, Object> response = new HashMap<>();
         response.put("balance", balance);
         return response;
-    }
+    }//예수금 조회 API
 
+    /* 8. KOSPI & KOSDAQ 지수 호츨API (2026_0708) */
+    @RequestMapping(value = "/api/market-indices", method = RequestMethod.GET)
+    @ResponseBody
+    public ResponseEntity<MarketIndexDTO> getMarketIndices() {
+        // 1. 단일 객체로 서비스 호출
+        MarketIndexDTO marketIndex = stockService.getLatestIndex();
+
+        // 2. 데이터가 없을 경우 처리
+        if (marketIndex == null) {
+            return ResponseEntity.noContent().build();
+        }
+
+        // 3. 단일 객체 그대로 반환
+        return ResponseEntity.ok(marketIndex);
+    }
 
 }// StockController
