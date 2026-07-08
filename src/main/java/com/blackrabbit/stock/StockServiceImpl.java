@@ -130,4 +130,11 @@ public class StockServiceImpl implements StockService {
         return currentBalance;
     }//BlackRabbit 메인페이지 - 7. 예수금 조회 API
 
+    @Override
+    public MarketIndexDTO getLatestIndex() {
+        return stockMapper.getLatestIndex();
+    }
+
+    /* 8. KOSPI & KOSDAQ 지수 호츨API (2026_0708) */
+
 }// StockServiceImpl

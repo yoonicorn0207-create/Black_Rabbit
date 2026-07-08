@@ -57,4 +57,7 @@ public interface StockMapper {
     /* 7. 예수금 조회 API */
     long getBalanceById(@Param("userId") String userId);
 
+    /* 8. KOSPI & KOSDAQ 지수 호츨API (2026_0708) */
+    MarketIndexDTO getLatestIndex();
+
 }// StockMapper

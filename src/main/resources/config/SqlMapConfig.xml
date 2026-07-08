@@ -29,6 +29,9 @@
         <typeAlias alias="kisTokenDTO"
                    type="com.blackrabbit.kis.KISTokenDTO"/>
 
+        <typeAlias alias="marketIndexDTO"
+                   type="com.blackrabbit.stock.MarketIndexDTO"/>
+
     </typeAliases>
 
 
