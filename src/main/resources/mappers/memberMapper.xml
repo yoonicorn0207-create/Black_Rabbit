@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.blackrabbit.member.MemberMapper">
+
+  <!-- 사용자 패스워드 매칭- 회원 정보 리턴 -->
+  <select id="verifyPwd" parameterType="MemberDTO"  resultType="map">
+    SELECT id, username, email, balance, password_hash, mock_account_no
+    FROM HC_user
+    WHERE 1=1
+    AND username = #{username}
+  </select>
+
+
+  <!-- 사용자 정보 수정 or 등록: email, pwd, account, appkey, secretkey  -->
+  <update id="updateUserInfo" parameterType="MemberDTO">
+    UPDATE HC_user
+    <trim prefix="SET" suffixOverrides=",">
+      <if test="email != null and email != ''">
+        email = #{email},
+      </if>
+
+      <if test="password != null and password != ''">
+        password_hash = #{password},
+      </if>
+
+      <choose>
+        <when test="isDeleteKis == true">
+          mock_account_no = NULL,
+          encrypted_app_key = NULL,
+          encrypted_app_secret = NULL,
+        </when>
+        <otherwise>
+          <if test="mockAccount != null and mockAccount != ''">
+            mock_account_no = #{mockAccount},
+          </if>
+          <if test="appKey != null and appKey != ''">
+            encrypted_app_key = #{appKey},
+          </if>
+          <if test="appSecret != null and appSecret != ''">
+            encrypted_app_secret = #{appSecret},
+          </if>
+        </otherwise>
+      </choose>
+    </trim>
+    WHERE username = #{username}
+  </update>
+
+</mapper>

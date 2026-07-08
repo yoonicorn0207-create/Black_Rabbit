@@ -32,6 +32,9 @@
         <typeAlias alias="kisTokenResDTO"
                    type="com.blackrabbit.kis.KISTokenResDTO"/>
 
+        <typeAlias alias="memberDTO"
+                   type="com.blackrabbit.member.MemberDTO"/>
+
     </typeAliases>
 
 

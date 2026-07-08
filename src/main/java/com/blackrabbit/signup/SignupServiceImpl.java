@@ -1,11 +1,10 @@
 package com.blackrabbit.signup;
 
 import com.blackrabbit.common.dto.ResultDTO;
-import com.blackrabbit.common.util.AESUtil;
+import com.blackrabbit.common.service.CommonService;
 import com.blackrabbit.kis.KISMapper;
 import com.blackrabbit.kis.KISTokenResDTO;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -14,20 +13,19 @@ public class SignupServiceImpl implements SignupService {
 
   @Autowired private KISMapper kisMapper;
   @Autowired private SignupMapper signupMapper;
-  @Autowired private BCryptPasswordEncoder pwdEncoder;
-  @Autowired private AESUtil aesUtil;
+  @Autowired private CommonService commonService;
 
   @Override
   public ResultDTO checkDup(String type, String value){
     // 아이디/ 이메일 중복확인
-    int cnt =  signupMapper.checkDup(type,value);
+    boolean isDup = commonService.isDuplicate(type, value);
 
     String fieldName = "id".equals(type) ? "아이디" : "이메일";
-    String resultTxt = cnt != 0 ? "이미 사용 중인 " :"사용 가능한 ";
 
     ResultDTO res = new ResultDTO();
-    res.setState(cnt == 0 );
-    res.setFailMsg( resultTxt + fieldName + "입니다.");
+
+    res.setState(!isDup);
+    res.setFailMsg(isDup ? "이미 사용 중인 " + fieldName + "입니다." : "사용 가능한 " + fieldName + "입니다.");
 
     return res;
   }
@@ -50,21 +48,20 @@ public class SignupServiceImpl implements SignupService {
     }
 
 
-    // 비밀번호 해시처리 선행- BCrypto 사용한다
-    String rawPwd = user.getPassword();
-    String encodedPwd = pwdEncoder.encode(rawPwd);
-    user.setPassword(encodedPwd);
-
+    // 비밀번호 해시처리 선행- BCrypto 사용
+    user.setPassword(
+        commonService.encodePassword(
+            user.getPassword()
+        )
+    );
 
 
     // kis 계좌번호&& appkey&& secretkey 존재 시 암호화 사용
     if(user.getTokenData() != null){
 
       try {
-        String enAppKey = encryptKey(user.getAppKey());
-        String enSecretKey = encryptKey(user.getAppSecret());
-
-        System.out.println("암호화 결과 길이: " + enSecretKey.length());
+        String enAppKey = commonService.encryptKey(user.getAppKey());
+        String enSecretKey = commonService.encryptKey(user.getAppSecret());
 
         user.setAppKey(enAppKey);
         user.setAppSecret(enSecretKey);
@@ -105,9 +102,6 @@ public class SignupServiceImpl implements SignupService {
     return res;
   }
 
-  private String encryptKey(String key) throws Exception {
-     return aesUtil.encrypt(key);
-  }
 
   private boolean isAllFieldsPresent(SignupDTO user) {
     if (user == null) return false;
