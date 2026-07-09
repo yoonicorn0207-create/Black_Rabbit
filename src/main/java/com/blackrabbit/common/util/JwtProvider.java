@@ -15,9 +15,10 @@ public class JwtProvider {
   private String SECRET_KEY;
 
   // 1. 액세스 토큰 생성
-  public String createAccessToken(String username) {
+  public String createAccessToken(String username, boolean isUseKis) {
     return Jwts.builder()
         .setSubject(username)
+        .claim("isUseKis", isUseKis)
         .setIssuedAt(new Date())
         .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24 * 7)) // 30분(이게 기본임): 1000 * 60 * 30
         .signWith(Keys.hmacShaKeyFor(SECRET_KEY.getBytes()))
@@ -25,9 +26,10 @@ public class JwtProvider {
   }
 
   // 2. 리프레시 토큰 생성
-  public String createRefreshToken(String username) {
+  public String createRefreshToken(String username, boolean isUseKis) {
     return Jwts.builder()
         .setSubject(username)
+        .claim("isUseKis", isUseKis)
         .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24 * 7)) // 1주일
         .signWith(Keys.hmacShaKeyFor(SECRET_KEY.getBytes()))
         .compact();
@@ -48,6 +50,13 @@ public class JwtProvider {
   public String getUsernameFromToken(String token) {
     return Jwts.parserBuilder().setSigningKey(Keys.hmacShaKeyFor(SECRET_KEY.getBytes())).build()
         .parseClaimsJws(token).getBody().getSubject();
+  }
+
+  // 토큰에서 isUseKis 정보 뽑아내기
+  public boolean getIsUseKisFromToken(String token) {
+    return Jwts.parserBuilder()
+        .setSigningKey(Keys.hmacShaKeyFor(SECRET_KEY.getBytes())).build()
+        .parseClaimsJws(token).getBody().get("isUseKis", Boolean.class);
   }
 
 }
