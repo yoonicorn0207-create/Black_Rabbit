@@ -107,8 +107,8 @@ public class LoginServiceImpl implements LoginService {
 
     // token 발행 진행
     String username = userData.getUsername();
-    String accessToken = jwtProvider.createAccessToken(username);
-    String refreshToken = jwtProvider.createRefreshToken(username);
+    String accessToken = jwtProvider.createAccessToken(username, userData.getIsUseKisApi());
+    String refreshToken = jwtProvider.createRefreshToken(username, userData.getIsUseKisApi());
 
 
     // 토큰 저장하기
@@ -150,7 +150,8 @@ public class LoginServiceImpl implements LoginService {
 
     // 3. 새 액세스 토큰 발급
     String username = jwtProvider.getUsernameFromToken(refreshToken);
-    String newAccessToken = jwtProvider.createAccessToken(username);
+    Boolean isUseKisToken = jwtProvider.getIsUseKisFromToken(refreshToken);
+    String newAccessToken = jwtProvider.createAccessToken(username, isUseKisToken);
 
     // 4. 프론트에서 새 토큰을 저장할 수 있도록 반환
     Map<String, String> data = new HashMap<>();

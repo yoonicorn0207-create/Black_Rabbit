@@ -270,27 +270,6 @@ function prepareSell(name, quantity, code, avgPrice) {
   currentStockCode = code;
 }
 
-/* * [페이지 라이프사이클 관리]
-     * DOMContentLoaded: HTML 문서가 모두 로드된 직후 실행되는 초기화 블록입니다.
-     */
-// [중요] 페이지 로드 시 실행되는 부분 (2026_0626에 추가)
-document.addEventListener('DOMContentLoaded', async () => {
-  renderHoldings(); // 보유 종목 표 출력
-  fetchAndRender();  // 1. Watchlist 서버 데이터 호출
-
-  // 1. 차트 초기화 (초기 데이터는 빈 배열로 시작)
-  chart.updateSeries([{data: []}]); //(2026_0629 추가)
-  chart.render();
-  donutChart.render();
-
-  // 2. 페이지 로드 시 삼성전자(005930) 기본 차트 로딩 (2026_0629)
-  fetchChartData("005930", "1D");
-
-
-  // 5초마다 데이터 갱신
-  setInterval(fetchAndRender, 50000);
-});
-
 // =============================== 로그아웃 ===============================
 async function logout() {
   try {
@@ -317,5 +296,24 @@ async function loadUserInfo() {
   }
 }
 
-// 페이지 로드 시 실행
-document.addEventListener('DOMContentLoaded', loadUserInfo);
+/* * [페이지 라이프사이클 관리]
+     * DOMContentLoaded: HTML 문서가 모두 로드된 직후 실행되는 초기화 블록입니다.
+     */
+// [중요] 페이지 로드 시 실행되는 부분 (2026_0626에 추가)
+document.addEventListener('DOMContentLoaded', async () => {
+  renderHoldings(); // 보유 종목 표 출력
+  fetchAndRender();  // 1. Watchlist 서버 데이터 호출
+  loadUserInfo(); // 사용자 아이디 출력 위해 호출
+
+  // 1. 차트 초기화 (초기 데이터는 빈 배열로 시작)
+  chart.updateSeries([{data: []}]); //(2026_0629 추가)
+  chart.render();
+  donutChart.render();
+
+  // 2. 페이지 로드 시 삼성전자(005930) 기본 차트 로딩 (2026_0629)
+  fetchChartData("005930", "1D");
+
+
+  // 5초마다 데이터 갱신
+  setInterval(fetchAndRender, 50000);
+});

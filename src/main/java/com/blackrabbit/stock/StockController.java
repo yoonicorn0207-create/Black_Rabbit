@@ -1,11 +1,13 @@
 package com.blackrabbit.stock;
 
 
+import com.blackrabbit.kis.KISService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import java.util.HashMap;
 import java.util.List;
@@ -18,6 +20,7 @@ public class StockController {
 
     @Autowired
     private StockService stockService;
+    @Autowired private KISService kisService;
 
     /* BlackRabbit 메인페이지 호출 */
     @RequestMapping("/stockMain")
@@ -87,14 +90,19 @@ public class StockController {
     /* 4. BlackRabbit 메인페이지 - 회원 보유종목 리스트  (2026_0630) By.yoonicorn */
     @RequestMapping("/api/myHoldings")
     @ResponseBody
-    public List<UserHoldingStockDTO> getMyHoldings(HttpSession session) {
+    public List<UserHoldingStockDTO> getMyHoldings(HttpSession session, HttpServletRequest request) {
         // 1. 세션에서 사용자 ID 가져오기
         String userId = (String) session.getAttribute("userId");
 
-        // 2. 테스트용: 로그인 미구현 시 기본값 설정
-//        if (userId == null) {
-//            userId = "1";
-//        }
+        // 추가) kis api 사용 여부 분기 처리
+        // 인터셉터가 토큰을 뜯어서 넣어준 isUseKis 값을 확인
+        Boolean isUseKis = (Boolean) request.getAttribute("isUseKis");
+
+        if (isUseKis != null && isUseKis) {
+            // [한투 모의투자 모드]
+            return kisService.getCashBalanceAndHoldings(Integer.parseInt(userId));
+        }
+
 
         // 3. 서비스 호출하여 리스트 변수에 담기
         List<UserHoldingStockDTO> userHoldingList = stockService.getMyHoldings(userId);

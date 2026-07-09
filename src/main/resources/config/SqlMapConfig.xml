@@ -35,6 +35,9 @@
         <typeAlias alias="memberDTO"
                    type="com.blackrabbit.member.MemberDTO"/>
 
+        <typeAlias alias="kisOrderDTO"
+                   type="com.blackrabbit.kis.KISOrderDTO"/>
+
     </typeAliases>
 
 
