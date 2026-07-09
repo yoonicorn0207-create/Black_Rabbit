@@ -375,7 +375,7 @@
             zoom: {enabled: true},
             pan: {enabled: true},
             // [추가된 부분] 범례를 위해 상단에 여백 확보
-            animations: { enabled: false },
+            animations: {enabled: false},
             toolbar: {show: false}
         },
         // [추가된 부분] 범례(Legend) 설정 시작
@@ -514,6 +514,35 @@
         }
     }//loadUserBalance()
 
+
+    // 3분(180,000ms)마다 KOSPI & KOSDAQ지수 업데이트(2026_0708)
+    async function updateMarketIndices() {
+        try {
+            const response = await fetch('/api/market-indices');
+            if (!response.ok) throw new Error('네트워크 응답 오류');
+
+            const data = await response.json();
+
+            // 데이터가 배열인지 확인 후 처리 (안전장치)
+            const latest = Array.isArray(data) ? data[0] : data;
+
+            if (latest) {
+                const indexContainer = document.querySelector('.flex.gap-4.text-sm.text-gray-400');
+                indexContainer.innerHTML = `
+                <p>KOSPI <span class="text-green-400 font-mono">${latest.kospi.toLocaleString()}</span></p>
+                <p>KOSDAQ <span class="text-red-500 font-mono">${latest.kosdaq.toLocaleString()}</span></p>
+            `;
+            }
+        } catch (error) {
+            console.error("지수 업데이트 실패:", error);
+            // 에러 시 사용자에게 알림을 띄우거나, 기존 값을 유지하는 로직 추가 가능
+        }
+    }
+
+    // document.addEventListener('DOMContentLoaded', ...) 내부에 추가
+    setInterval(updateMarketIndices, 180000); // 3분 간격 호출
+
+
     // 수정된 이동평균 계산 함수 (기간 파라미터 추가)
     function calculateMA(dayCount, data) {
         let result = [];
@@ -552,12 +581,18 @@
         chart.render();
         donutChart.render();
 
+        //5. 페이지 로드 시 즉시 (KOSPI & KOSDAQ)지수 한번 가져오기 (2026_0708)
+        updateMarketIndices();
+
         // 2. 페이지 로드 시 삼성전자(005930) 기본 차트 로딩 (2026_0629)
         fetchChartData("005930", "day");
 
 
         // 5초마다 데이터 갱신
-        setInterval(fetchAndRender, 50000);
+        setInterval(fetchAndRender, 500000);
+
+        //3분마다 (KOSPI & KOSDAQ)지수로드
+        setInterval(updateMarketIndices, 180000); // 3분
     });
 
     // =============================== 로그아웃 ===============================

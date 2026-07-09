@@ -29,18 +29,22 @@ public class AuthFilter implements Filter {
     HttpServletRequest httpRequest = (HttpServletRequest) request;
     HttpServletResponse httpResponse = (HttpServletResponse) response;
 
+    // 1. [추가] 컨텍스트 경로(앱 이름)를 가져오고 순수 경로를 추출
+    String contextPath = httpRequest.getContextPath();
     String requestURI = httpRequest.getRequestURI();
+    String pathOnly = requestURI.substring(contextPath.length()); // <--- 핵심! "/blackrabbit" 제거
+
     HttpSession session = httpRequest.getSession(false);
 
-    // 공개 페이지 접근 시 return
-    if (isPublic(requestURI)) {
+    // 2. [변경] requestURI 대신 추출한 pathOnly를 검사
+    if (isPublic(pathOnly)) {
       chain.doFilter(request, response);
       return;
     }
 
-    // 로그인 여부 확인
+    // 3. [변경] 리다이렉트 시 contextPath를 붙여서 안전하게 이동
     if (session == null || session.getAttribute("userId") == null) {
-      httpResponse.sendRedirect(httpRequest.getContextPath() + "/login");
+      httpResponse.sendRedirect(contextPath + "/login"); // <--- 안전한 경로 지정
       return;
     }
 
