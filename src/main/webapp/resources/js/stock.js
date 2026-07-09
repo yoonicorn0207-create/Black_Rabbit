@@ -88,7 +88,22 @@ async function fetchChartData(stockCode, period) {
         ]
       }
     });
-    chart.updateSeries([{data: formattedData}]); // 서버에서 받은 데이터로 업데이트
+
+    // 이동평균선 계산
+    const ma5 = calculateMA(5, formattedData);
+    const ma20 = calculateMA(20, formattedData);
+    const ma60 = calculateMA(60, formattedData);
+    const ma120 = calculateMA(120, formattedData);
+
+    // [중요] 모든 데이터를 한 번에 업데이트
+    chart.updateSeries([
+      {name: '주가', type: 'candlestick', data: formattedData},
+      {name: '5', type: 'line', data: ma5},
+      {name: '20', type: 'line', data: ma20},
+      {name: '60', type: 'line', data: ma60},
+      {name: '120', type: 'line', data: ma120}
+    ]);
+
 
     // 종목마다 차트 금액 표시선 변경되도록 updateOption 추가
     chart.updateOptions({
@@ -181,12 +196,46 @@ async function renderHoldings() {
      * 페이지 로드 시 차트 객체를 선언하고 렌더링합니다.
      */
 const chart = new ApexCharts(document.querySelector("#main-chart"), {
-  series: [{data: []}],
+  series: [
+    {name: '주가', type: 'candlestick', data: []},
+    {name: '5', type: 'line', data: []},
+    {name: '20', type: 'line', data: []},
+    {name: '60', type: 'line', data: []},
+    {name: '120', type: 'line', data: []}
+  ],
   chart: {
     type: 'candlestick',
     height: '100%',
     zoom: {enabled: true},
-    pan: {enabled: true} // 마우스 드래그로 과거 데이터 탐색 가능
+    pan: {enabled: true}, // 마우스 드래그로 과거 데이터 탐색 가능
+    // [추가된 부분] 범례를 위해 상단에 여백 확보
+    animations: {enabled: false},
+    toolbar: {show: false}
+  },
+  // [추가된 부분] 범례(Legend) 설정 시작
+  legend: {
+    show: true,
+    position: 'top',      // 상단 배치
+    horizontalAlign: 'right', // 우측 정렬 (요청하신 빨간 영역 쪽)
+    fontSize: '12px',
+    labels: {
+      colors: '#d1d4dc' // 전체적인 테마 색상에 맞춤
+    },
+    markers: {
+      width: 12,
+      height: 12,
+      radius: 0
+    }
+  },
+  // [추가된 부분] 범례 설정 끝
+  stroke: {
+    width: [0, 2, 2, 2, 2],
+    curve: 'smooth',
+    colors: ['#FFFFFF', '#FFD700', '#FF4500', '#00FF00', '#00BFFF']
+  },
+  tooltip: {
+    shared: true,
+    intersect: false
   },
   plotOptions: {candlestick: {colors: {upward: '#ef4444', downward: '#3b82f6'}}},
   xaxis: {labels: {style: {colors: '#9CA3AF'}}},
@@ -246,7 +295,7 @@ async function executeOrder(type) {
   const stockName = document.getElementById('order-stock-name').innerText;
 
   if (!quantity || quantity <= 0) {
-    alert("수량을 확인하세요.");
+    openModal("수량을 확인하세요.");
     return;
   }
 
@@ -261,9 +310,11 @@ async function executeOrder(type) {
 
 
   if (result.state) {
-    renderHoldings(); // 리스트 갱신
+    await renderHoldings(); // 리스트 갱신
+    await loadUserBalance(); // 2. [추가] 예수금 즉시 갱신 (2026_0706)
+    document.getElementById('order-quantity').value = '';// 3. 입력창 초기화 (선택 사항) (2026_0706)
   }
-  openModal(result.failMsg);
+  await openModal(result.failMsg);
 }
 
 // [추가] 매도 시 입력창 자동 채우기(2026_0701)
@@ -276,6 +327,69 @@ function prepareSell(name, quantity, code, avgPrice) {
   document.getElementById('order-quantity').value = quantity;
   currentStockCode = code;
 }
+
+// [추가] 예수금 정보를 서버에서 가져와 화면에 출력 (2026_0706)
+async function loadUserBalance() {
+  try {
+    const response = await fetch('/api/userBalance');
+    const data = await response.json();
+    if (data.balance !== undefined) {
+      // 천 단위 콤마 처리
+      document.getElementById('available-balance').innerText = `₩ ${data.balance.toLocaleString()}`;
+    }
+  } catch (error) {
+    console.error("예수금 로드 실패:", error);
+  }
+}//loadUserBalance()
+
+
+// 3분(180,000ms)마다 KOSPI & KOSDAQ지수 업데이트(2026_0708)
+async function updateMarketIndices() {
+  try {
+    const response = await fetch('/api/market-indices');
+    if (!response.ok) throw new Error('네트워크 응답 오류');
+
+    const data = await response.json();
+
+    // 데이터가 배열인지 확인 후 처리 (안전장치)
+    const latest = Array.isArray(data) ? data[0] : data;
+
+    if (latest) {
+      const indexContainer = document.querySelector('.flex.gap-4.text-sm.text-gray-400');
+      indexContainer.innerHTML = `  
+			<p>KOSPI <span class="text-green-400 font-mono">${latest.kospi.toLocaleString()}</span></p>  
+			<p>KOSDAQ <span class="text-red-500 font-mono">${latest.kosdaq.toLocaleString()}</span></p>  
+		`;
+    }
+  } catch (error) {
+    console.error("지수 업데이트 실패:", error);
+    // 에러 시 사용자에게 알림을 띄우거나, 기존 값을 유지하는 로직 추가 가능
+  }
+}
+
+// document.addEventListener('DOMContentLoaded', ...) 내부에 추가
+setInterval(updateMarketIndices, 180000); // 3분 간격 호출
+
+
+// 수정된 이동평균 계산 함수 (기간 파라미터 추가)
+function calculateMA(dayCount, data) {
+  let result = [];
+  for (let i = 0; i < data.length; i++) {
+    if (i < dayCount - 1) {
+      result.push({x: data[i].x, y: null});
+    } else {
+      let sum = 0;
+      for (let j = 0; j < dayCount; j++) {
+        // 데이터 배열에서 종가(y[3])를 가져옴
+        sum += parseFloat(data[i - j].y[3]);
+      }
+      result.push({x: data[i].x, y: (sum / dayCount).toFixed(0)});
+    }
+  }
+  return result;
+}
+
+
 
 // =============================== 로그아웃 ===============================
 async function logout() {
@@ -308,9 +422,11 @@ async function loadUserInfo() {
      */
 // [중요] 페이지 로드 시 실행되는 부분 (2026_0626에 추가)
 document.addEventListener('DOMContentLoaded', async () => {
-  fetchAndRender();  // 1. Watchlist 서버 데이터 호출
-  loadUserInfo(); // 사용자 아이디 출력 위해 호출
-  renderHoldings(); // 보유 종목 표 출력
+  await fetchAndRender();  //  Watchlist 서버 데이터 호출
+  await loadUserInfo(); // 사용자 아이디 출력 위해 호출
+  await renderHoldings(); // 보유 종목 표 출력
+  await loadUserBalance(); // 3. 예수금 불러오기 추가! (2026_0706)
+
 
   // 1. 차트 초기화 (초기 데이터는 빈 배열로 시작)
   chart.updateSeries([{data: []}]); //(2026_0629 추가)
@@ -318,9 +434,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   donutChart.render();
 
   // 2. 페이지 로드 시 삼성전자(005930) 기본 차트 로딩 (2026_0629)
-  fetchChartData("005930", "1D");
+  await fetchChartData("005930", "1D");
 
 
   // 5초마다 데이터 갱신
   setInterval(fetchAndRender, 50000);
+  //3분마다 (KOSPI & KOSDAQ)지수로드
+  setInterval(updateMarketIndices, 180000);
 });
