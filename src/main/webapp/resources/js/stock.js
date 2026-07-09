@@ -1,197 +1,9 @@
+// ======================== 전역 변수 선언 ==============================
 let allStocks = []; // 전역 변수 추가
 let currentStockCode = "005930"; // 기본값 삼성전자
 
-/* * [API 통신] (2026_0626에 추가)
-     * fetchAndRender: 서버의 /api/stockList 경로에서 종목 데이터를 가져와
-     * 렌더링 함수인 renderWatchlist로 데이터를 전달.
-     */
-async function fetchAndRender() {
-  try {
-    const response = await fetch('/api/stockList');
-    const data = await response.json();
-    // 1. 전체 데이터를 전역 변수에 담기
-    allStocks = Array.isArray(data) ? data : []; // 데이터를 전역 변수에 보관(2026_0629)
 
-    // 2. 초기 리스트 렌더링
-    renderWatchlist(allStocks); // 초기에는 전체 출력(2026_0629)
-  } catch (error) {
-    console.error('에러:', error);
-  }
-}//
-
-/* * [Watchlist UI 렌더링] (2026_0626에 추가)
- * renderWatchlist: API로 받은 stockList 배열을 순회하며 HTML 요소를 생성하여 #watchlist 영역에 삽입.
- * 클릭 시 상단 종목 타이틀을 변경하는 기능을 포함.
- */
-function renderWatchlist(stockList) {
-  const wl = document.getElementById('watchlist');
-  wl.innerHTML = '';
-
-  // stockList가 배열인지 확인 후 처리
-  if (!Array.isArray(stockList)) return;
-
-  stockList.forEach(s => {
-    const code = s.stck_shrn_iscd || "000000";
-    const name = s.hts_kor_isnm || "종목명";
-    const price = s.stck_prpr ? parseInt(s.stck_prpr).toLocaleString() : '0';
-
-    const div = document.createElement('div');
-    // 리스트 디자인을 좀 더 깔끔하게 수정
-    div.className = "px-3 py-2 bg-black rounded border border-gray-800 hover:border-gray-600 transition cursor-pointer flex justify-between items-center";
-    div.innerHTML = `
-                <div class="text-sm font-bold text-white truncate">[${code}] ${name}</div>
-                <div class="text-sm font-mono text-gray-300">₩ ${price}</div>
-            `;
-
-    // 리스트 클릭 시 차트 타이틀 변경 예시 (필요 시)
-    div.onclick = () => {
-      currentStockCode = code; // 전역 변수 업데이트
-      document.getElementById('stock-title').innerText = name;
-
-      // 2. [추가] ORDER 영역에 종목명 및 현재가 표시(2026_0701)
-      document.getElementById('order-stock-name').innerText = name;
-      document.getElementById('order-stock-price').innerText = `₩ ${price}`;
-
-      // 3. 차트 데이터 로드
-      const activeBtn = document.querySelector('.period-btn.active');
-      const period = activeBtn ? activeBtn.innerText : 'day';
-
-      fetchChartData(code, period);
-    };
-
-    wl.appendChild(div);
-  });
-}
-
-// [추가] fetch를 사용하는 새로운 차트 데이터 로드 함수 (2026_0629 생성)
-async function fetchChartData(stockCode, period) {
-  try {
-    // 서버의 컨트롤러로 요청 전송
-    const url = period === 'minute' || period === 'hour' ? "minHourChartData" : "chartData";
-    const response = await fetch(`/api/${url}?code=${stockCode}&period=${period}`);
-
-    if (!response.ok) throw new Error('서버 데이터 응답 실패');
-
-    const data = await response.json(); // DB에서 변환된 JSON 데이터 수신
-    console.log("받아온 데이터:", data); // F12 콘솔에서 확인용
-
-    // ApexCharts 차트 객체(chart)의 시리즈 데이터 업데이트
-    // 가격 등을 차드에 반영하기 위해 가격 등을 숫자로 명시적 변환 진행
-    const formattedData = data.map(item => {
-      return {
-        x: item.x, // 날짜
-        y: [
-          parseFloat(item.y[0]), // 시가
-          parseFloat(item.y[1]), // 고가
-          parseFloat(item.y[2]), // 저가
-          parseFloat(item.y[3])  // 종가(또는 현재가)
-        ]
-      }
-    });
-
-    // 이동평균선 계산
-    const ma5 = calculateMA(5, formattedData);
-    const ma20 = calculateMA(20, formattedData);
-    const ma60 = calculateMA(60, formattedData);
-    const ma120 = calculateMA(120, formattedData);
-
-    // [중요] 모든 데이터를 한 번에 업데이트
-    chart.updateSeries([
-      {name: '주가', type: 'candlestick', data: formattedData},
-      {name: '5', type: 'line', data: ma5},
-      {name: '20', type: 'line', data: ma20},
-      {name: '60', type: 'line', data: ma60},
-      {name: '120', type: 'line', data: ma120}
-    ]);
-
-
-    // 종목마다 차트 금액 표시선 변경되도록 updateOption 추가
-    chart.updateOptions({
-      series: [{data: formattedData}],
-      yaxis: {
-        // 기존 스타일 유지
-        labels: {
-          style: {colors: '#9CA3AF'},
-          formatter: (val) => val.toLocaleString()
-        },
-        forceNiceScale: true,
-        decimalsInFloat: 0
-      }
-    }, true, true, true);
-
-    // 종목명 업데이트 (선택 사항)
-    // document.getElementById('stock-title').innerText = stockCode;
-
-  } catch (error) {
-    console.error("차트 데이터를 불러오는 중 에러 발생:", error);
-  }
-}
-
-
-/* * [수정된 보유 종목 UI 렌더링] (2026_0630)
-   * 서버에서 API(/api/myHoldings)를 호출해 실제 데이터를 가져와 그립니다.
-   */
-async function renderHoldings() {
-  try {
-    const response = await fetch('/api/myHoldings');
-    if (!response.ok) throw new Error('데이터 로드 실패');
-
-    const res = await response.json();
-
-    if(!res.state){
-      openModal(res.failMsg || "보유종목 리스트를 가져오지 못했습니다");
-      return;
-    }
-
-    const list = document.getElementById('holding-list');
-    // 1. 헤더 수정: 4개 -> 5개 컬럼으로 (종목, 수량, 평단, 현재, 수익) (2026_0701 수정)
-    list.innerHTML = `<div class="grid grid-cols-5 gap-1 text-gray-500 border-b border-gray-800 pb-1 mb-1 text-[10px]">
-                        <span class="text-center">종목</span>
-                        <span class="text-center">수량</span>
-                        <span class="text-center">평단</span>
-                        <span class="text-center">현재</span>
-                        <span class="text-center">수익</span>
-                      </div>`;
-
-    // 1. 도넛 차트 데이터 준비
-    const chartSeries = [];
-    const chartLabels = [];
-
-    const data = res.data;
-
-    data.forEach(s => {
-      const profit = s.profit_rate;
-      const color = profit >= 0 ? 'text-up' : 'text-down';
-
-      // 2. 행 클릭 시 매도 정보 자동 입력 (onclick 이벤트 추가) (2026_0701)
-      list.innerHTML += `
-    <div class="grid grid-cols-5 gap-1 items-center text-[11px] py-1 border-b border-gray-900 cursor-pointer hover:bg-gray-800"
-         onclick="prepareSell('${s.stock_name}', ${s.total_quantity}, '${s.stck_shrn_iscd}', ${s.avg_buy_price})">
-        <span class="font-bold text-white truncate text-center">${s.stock_name}</span>
-        <span class="font-mono text-gray-300 text-center">${s.total_quantity.toLocaleString()}</span>
-        <span class="font-mono text-center">₩ ${s.avg_buy_price.toLocaleString()}</span>
-        <span class="font-mono text-center">₩ ${s.current_price.toLocaleString()}</span>
-        <span class="${color} font-bold text-center">${profit}%</span>
-    </div>`;
-
-      // 2. 도넛 차트용 데이터 배열 채우기
-      // 예: (현재가 * 수량)으로 비중 계산
-      const evaluationAmount = s.current_price * s.total_quantity;
-      chartSeries.push(evaluationAmount);
-      chartLabels.push(s.stock_name);
-    });
-
-    // 3. 도넛 차트 업데이트 (ApexCharts 제공 메서드)
-    donutChart.updateOptions({
-      series: chartSeries,
-      labels: chartLabels
-    });
-
-  } catch (error) {
-    console.error("보유 종목 로딩 실패:", error);
-  }
-}//renderHoldings(보유종목 리스트)
-
+// ============================== apexChart config ==============================
 /* * [초기화 및 차트 설정]
      * 페이지 로드 시 차트 객체를 선언하고 렌더링합니다.
      */
@@ -260,6 +72,208 @@ const donutChart = new ApexCharts(document.querySelector("#donut-chart"), {
 });
 
 
+
+
+
+// ============================== getStockList ==============================
+/* * [API 통신] (2026_0626에 추가)
+     * fetchAndRender: 서버의 /api/stockList 경로에서 종목 데이터를 가져와
+     * 렌더링 함수인 renderWatchlist로 데이터를 전달.
+     */
+async function fetchAndRender() {
+  try {
+    const response = await fetch('/api/stockList');
+    const data = await response.json();
+    // 1. 전체 데이터를 전역 변수에 담기
+    allStocks = Array.isArray(data) ? data : []; // 데이터를 전역 변수에 보관(2026_0629)
+
+    // 2. 초기 리스트 렌더링
+    renderWatchlist(allStocks); // 초기에는 전체 출력(2026_0629)
+  } catch (error) {
+    console.error('에러:', error);
+  }
+}//
+
+// ============================== watchList 화면 그리기 ==============================
+/* * [Watchlist UI 렌더링] (2026_0626에 추가)
+ * renderWatchlist: API로 받은 stockList 배열을 순회하며 HTML 요소를 생성하여 #watchlist 영역에 삽입.
+ * 클릭 시 상단 종목 타이틀을 변경하는 기능을 포함.
+ */
+function renderWatchlist(stockList) {
+  const wl = document.getElementById('watchlist');
+  wl.innerHTML = '';
+
+  // stockList가 배열인지 확인 후 처리
+  if (!Array.isArray(stockList)) return;
+
+  stockList.forEach(s => {
+    const code = s.stck_shrn_iscd || "000000";
+    const name = s.hts_kor_isnm || "종목명";
+    const price = s.stck_prpr ? parseInt(s.stck_prpr).toLocaleString() : '0';
+
+    const div = document.createElement('div');
+
+    div.className = "px-3 py-2 bg-black rounded border border-gray-800 hover:border-gray-600 transition cursor-pointer flex justify-between items-center";
+    div.innerHTML = `
+                <div class="text-sm font-bold text-white truncate">[${code}] ${name}</div>
+                <div class="text-sm font-mono text-gray-300">₩ ${price}</div>
+            `;
+
+    // 리스트 클릭 시 차트 타이틀 변경 예시 (필요 시)
+    div.onclick = () => {
+      currentStockCode = code; // 전역 변수 업데이트
+      document.getElementById('stock-title').innerText = name;
+
+      // 2. [추가] ORDER 영역에 종목명 및 현재가 표시(2026_0701)
+      document.getElementById('order-stock-name').innerText = name;
+      document.getElementById('order-stock-price').innerText = `₩ ${price}`;
+
+      // 3. 차트 데이터 로드
+      const activeBtn = document.querySelector('.period-btn.active');
+      const period = activeBtn ? activeBtn.innerText : 'day';
+
+      fetchChartData(code, period);
+    };
+
+    wl.appendChild(div);
+  });
+}
+
+
+// ============================== 분봉/ 시간봉 차트 ==============================
+// [추가] fetch를 사용하는 새로운 차트 데이터 로드 함수 (2026_0629 생성)
+async function fetchChartData(stockCode, period) {
+  try {
+    // 서버의 컨트롤러로 요청 전송
+    const url = period === 'minute' || period === 'hour' ? "minHourChartData" : "chartData";
+    const response = await fetch(`/api/${url}?code=${stockCode}&period=${period}`);
+
+    if (!response.ok) throw new Error('서버 데이터 응답 실패');
+
+    const data = await response.json(); // DB에서 변환된 JSON 데이터 수신
+    console.log("받아온 데이터:", data); // F12 콘솔에서 확인용
+
+    // ApexCharts 차트 객체(chart)의 시리즈 데이터 업데이트
+    // 가격 등을 차드에 반영하기 위해 가격 등을 숫자로 명시적 변환 진행
+    const formattedData = data.map(item => {
+      return {
+        x: item.x, // 날짜
+        y: [
+          parseFloat(item.y[0]), // 시가
+          parseFloat(item.y[1]), // 고가
+          parseFloat(item.y[2]), // 저가
+          parseFloat(item.y[3])  // 종가(또는 현재가)
+        ]
+      }
+    });
+
+    // 이동평균선 계산
+    const ma5 = calculateMA(5, formattedData);
+    const ma20 = calculateMA(20, formattedData);
+    const ma60 = calculateMA(60, formattedData);
+    const ma120 = calculateMA(120, formattedData);
+
+
+    // [중요] 모든 데이터를 한 번에 업데이트
+    chart.updateSeries([
+      {name: '주가', type: 'candlestick', data: formattedData},
+      {name: '5', type: 'line', data: ma5},
+      {name: '20', type: 'line', data: ma20},
+      {name: '60', type: 'line', data: ma60},
+      {name: '120', type: 'line', data: ma120}
+    ]);
+
+
+    // 종목마다 차트 금액 표시선 변경되도록 updateOption 추가
+    chart.updateOptions({
+      series: [{data: formattedData}],
+      yaxis: {
+        // 기존 스타일 유지
+        labels: {
+          style: {colors: '#9CA3AF'},
+          formatter: (val) => val.toLocaleString()
+        },
+        forceNiceScale: true,
+        decimalsInFloat: 0
+      }
+    }, true, true, true);
+
+    // 종목명 업데이트 (선택 사항)
+    // document.getElementById('stock-title').innerText = stockCode;
+
+  } catch (error) {
+    console.error("차트 데이터를 불러오는 중 에러 발생:", error);
+  }
+}
+
+
+// ============================== 로그인 사용자의 보유종목 출력 ==============================
+/* * [수정된 보유 종목 UI 렌더링] (2026_0630)
+   * 서버에서 API(/api/myHoldings)를 호출해 실제 데이터를 가져와 그립니다.
+   */
+async function renderHoldings() {
+  try {
+    const response = await fetch('/api/myHoldings');
+    if (!response.ok) throw new Error('데이터 로드 실패');
+
+    const res = await response.json();
+
+    if(!res.state){
+      openModal(res.failMsg || "보유종목 리스트를 가져오지 못했습니다");
+      return;
+    }
+
+    const list = document.getElementById('holding-list');
+    // 1. 헤더 수정: 4개 -> 5개 컬럼으로 (종목, 수량, 평단, 현재, 수익) (2026_0701 수정)
+    list.innerHTML = `<div class="grid grid-cols-5 gap-1 text-gray-500 border-b border-gray-800 pb-1 mb-1 text-[10px]">
+                        <span class="text-center">종목</span>
+                        <span class="text-center">수량</span>
+                        <span class="text-center">평단</span>
+                        <span class="text-center">현재</span>
+                        <span class="text-center">수익</span>
+                      </div>`;
+
+    // 1. 도넛 차트 데이터 준비
+    const chartSeries = [];
+    const chartLabels = [];
+
+    const data = res.data;
+
+    data.forEach(s => {
+      const profit = s.profit_rate;
+      const color = profit >= 0 ? 'text-up' : 'text-down';
+
+      // 2. 행 클릭 시 매도 정보 자동 입력 (onclick 이벤트 추가) (2026_0701)
+      list.innerHTML += `
+    <div class="grid grid-cols-5 gap-1 items-center text-[11px] py-1 border-b border-gray-900 cursor-pointer hover:bg-gray-800"
+         onclick="prepareSell('${s.stock_name}', ${s.total_quantity}, '${s.stck_shrn_iscd}', ${s.avg_buy_price})">
+        <span class="font-bold text-white truncate text-center">${s.stock_name}</span>
+        <span class="font-mono text-gray-300 text-center">${s.total_quantity.toLocaleString()}</span>
+        <span class="font-mono text-center">₩ ${s.avg_buy_price.toLocaleString()}</span>
+        <span class="font-mono text-center">₩ ${s.current_price.toLocaleString()}</span>
+        <span class="${color} font-bold text-center">${profit}%</span>
+    </div>`;
+
+      // 2. 도넛 차트용 데이터 배열 채우기
+      // 예: (현재가 * 수량)으로 비중 계산
+      const evaluationAmount = s.current_price * s.total_quantity;
+      chartSeries.push(evaluationAmount);
+      chartLabels.push(s.stock_name);
+    });
+
+    // 3. 도넛 차트 업데이트 (ApexCharts 제공 메서드)
+    donutChart.updateOptions({
+      series: chartSeries,
+      labels: chartLabels
+    });
+
+  } catch (error) {
+    console.error("보유 종목 로딩 실패:", error);
+  }
+}//renderHoldings(보유종목 리스트)
+
+
+// ============================== 분봉 선택 ==============================
 /* * [이벤트 핸들러]
  * updatePeriod: 차트 기간 버튼 클릭 시 호출됩니다.
  * 버튼 디자인을 변경하고 선택된 기간에 맞춰 차트 데이터를 업데이트합니다.
@@ -275,6 +289,7 @@ function updatePeriod(period, button) {
 }
 
 
+// ============================== watchList 검색 ==============================
 // 검색창 입력 시 호출될 함수(2026_0629)
 function filterWatchlist(keyword) {
   const searchKeyword = keyword.toLowerCase().trim();
@@ -289,6 +304,7 @@ function filterWatchlist(keyword) {
 }//검색창 검색어 입력 시 호출
 
 
+// ============================== 매수/ 매도 ==============================
 // [수정] 매수/매도 공통 실행 함수(2026_0701)
 async function executeOrder(type) {
   const quantity = document.getElementById('order-quantity').value;
@@ -317,6 +333,8 @@ async function executeOrder(type) {
   await openModal(result.failMsg);
 }
 
+
+// ============================== 매도 시 평단가 추가 출력 ==============================
 // [추가] 매도 시 입력창 자동 채우기(2026_0701)
 function prepareSell(name, quantity, code, avgPrice) {
   document.getElementById('order-stock-name').innerText = name;
@@ -328,6 +346,9 @@ function prepareSell(name, quantity, code, avgPrice) {
   currentStockCode = code;
 }
 
+
+
+// ============================== 예수금 잔액 출력 ==============================
 // [추가] 예수금 정보를 서버에서 가져와 화면에 출력 (2026_0706)
 async function loadUserBalance() {
   try {
@@ -343,6 +364,8 @@ async function loadUserBalance() {
 }//loadUserBalance()
 
 
+
+// ============================== kospi& kosdaq ==============================
 // 3분(180,000ms)마다 KOSPI & KOSDAQ지수 업데이트(2026_0708)
 async function updateMarketIndices() {
   try {
@@ -367,10 +390,8 @@ async function updateMarketIndices() {
   }
 }
 
-// document.addEventListener('DOMContentLoaded', ...) 내부에 추가
-setInterval(updateMarketIndices, 180000); // 3분 간격 호출
 
-
+// ============================== 이동평균선 계산 ==============================
 // 수정된 이동평균 계산 함수 (기간 파라미터 추가)
 function calculateMA(dayCount, data) {
   let result = [];
@@ -408,7 +429,7 @@ async function logout() {
   }
 }
 
-// =============================== 로그인된 사용자 id 출력을 위한 로직 ===============================
+// ========================== 로그인된 사용자 id 출력을 위한 로직 ===========================
 async function loadUserInfo() {
   const res = await fetch('/api/userInfo');
   const data = await res.json();
@@ -417,6 +438,9 @@ async function loadUserInfo() {
   }
 }
 
+
+
+// =========================== 페이지 랜딩 시 바로 실행 ================================
 /* * [페이지 라이프사이클 관리]
      * DOMContentLoaded: HTML 문서가 모두 로드된 직후 실행되는 초기화 블록입니다.
      */
@@ -425,7 +449,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await fetchAndRender();  //  Watchlist 서버 데이터 호출
   await loadUserInfo(); // 사용자 아이디 출력 위해 호출
   await renderHoldings(); // 보유 종목 표 출력
-  await loadUserBalance(); // 3. 예수금 불러오기 추가! (2026_0706)
+  await loadUserBalance(); // 예수금 불러오기 (2026_0706)
 
 
   // 1. 차트 초기화 (초기 데이터는 빈 배열로 시작)
