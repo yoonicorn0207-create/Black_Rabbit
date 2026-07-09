@@ -50,12 +50,12 @@
                         기존 한국투자증권 정보 삭제하기
                     </label>
                 </div>
-                <button onclick="submitEditUser()" class="modal-btn w-[200px] py-3 mt-2">수정하기</button>
+                <button onclick="submitEditUser(event)" class="modal-btn w-[200px] py-3 mt-2">수정하기</button>
             </div>
         </div>
     </div>
 </div>
-
+<script src="<c:url value='/resources/js/login.js'/>"></script>
 <script>
     let initialEmail = "";
     let isEmailChecked = true;
@@ -165,7 +165,9 @@
         }
     }
 
-    async function submitEditUser() {
+    async function submitEditUser(event) {
+    const btnEl = event.target;
+
         const email = document.getElementById('editEmail').value;
         const pwd = document.getElementById('editPwd').value;
         const repwd = document.getElementById('editRepwd').value;
@@ -204,6 +206,10 @@
             }
         }
 
+     try {
+        // api 호출로 버튼 로딩 시작
+        toggleBtnLoading(btnEl, true);
+
         const data = {
             email: email,
             password: pwd,
@@ -225,6 +231,11 @@
         } else {
             openModal(result.failMsg || "수정 실패");
         }
+    } catch (e) {
+        openModal(`로그인에 실패했습니다. ${e}`);
+      }finally{
+        toggleBtnLoading(btnEl, false);
+      }
     }
     function showValidation(id, isShow, message = "", isError = true) {
       const el = document.getElementById(id);

@@ -13,6 +13,8 @@ import java.net.http.HttpClient;
 import java.net.http.HttpHeaders;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -45,8 +47,13 @@ public class KISServiceImpl implements KISService {
 
       if (dbInfo.isPresent()) {
         KISTokenDTO data = dbInfo.get();
-        kisTokenDTO.setAppKey(data.getAppKey());
-        kisTokenDTO.setSecretKey(data.getSecretKey());
+        try {
+          kisTokenDTO.setAppKey(aesUtil.decrypt(data.getAppKey()));
+          kisTokenDTO.setSecretKey(aesUtil.decrypt(data.getSecretKey()));
+        } catch (Exception e) {
+          e.printStackTrace();
+          return new ResultDTO(false, "복호화 중 오류가 발생했습니다.");
+        }
 
       } else {
         return new ResultDTO(false, "등록된 KIS 계좌 정보가 없어 KIS 로그인이 불가합니다.", null);
@@ -71,6 +78,7 @@ public class KISServiceImpl implements KISService {
 
       HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
+      System.out.println(response);
       if (response.statusCode() == 200) {
         KISTokenResDTO resDto = objectMapper.readValue(response.body(), KISTokenResDTO.class);
 
@@ -122,6 +130,7 @@ public class KISServiceImpl implements KISService {
       try {
         data.setSecretKey(aesUtil.decrypt(data.getSecretKey()));
         data.setAppKey(aesUtil.decrypt(data.getAppKey()));
+
       } catch (Exception e) {
         e.printStackTrace();
         return new ResultDTO(false, "복호화 중 오류가 발생했습니다.");
@@ -144,8 +153,8 @@ public class KISServiceImpl implements KISService {
     Map<String, Object> obj = new HashMap<>();
     obj.put("id", userIdx);
     obj.put("username", username);
-    obj.put("appkey", data.getSecretKey());
-    obj.put("appsecret", data.getAppKey());
+    obj.put("appkey", data.getAppKey());
+    obj.put("appsecret", data.getSecretKey());
     obj.put("CANO", data.getMockAccount());
     obj.put("authorization", tokenDto.getAccess_token());
 
@@ -153,13 +162,16 @@ public class KISServiceImpl implements KISService {
     return new ResultDTO(true, "", obj);
   }
 
-  private boolean isTokenExpiredSoon(long expiresAt) {
-    long currentTime = System.currentTimeMillis();
-    long sixHoursInMillis = 6 * 60 * 60 * 1000L; // 6시간을 밀리초로 변환
+  private boolean isTokenExpiredSoon(LocalDateTime expiresAt) {
+    if (expiresAt == null) return true; // 데이터가 없으면 만료로 간주
 
-    // 만료 시간 - 현재 시간 = 남은 시간
-    // 남은 시간이 6시간보다 작으면 true 반환
-    return (expiresAt - currentTime) < sixHoursInMillis;
+    LocalDateTime now = LocalDateTime.now();
+
+    // 두 시간 사이의 차이를 계산
+    Duration duration = Duration.between(now, expiresAt);
+
+    // 차이가 6시간보다 작은지 확인
+    return duration.toHours() < 6;
   }
 
 
@@ -183,7 +195,7 @@ public class KISServiceImpl implements KISService {
 
     try{
       String apiPath = "/uapi/domestic-stock/v1/trading/inquire-balance";
-      String queryStr = "&ACNT_PRDT_CD=01&AFHR_FLPR_YN=N&INQR_DVSN=01&UNPR_DVSN=01&FUND_STTL_ICLD_YN=N&FNCG_AMT_AUTO_RDPT_YN=N&PRCS_DVSN=00";
+      String queryStr = "&ACNT_PRDT_CD=01&AFHR_FLPR_YN=N&OFL_YN=N&INQR_DVSN=01&UNPR_DVSN=01&FUND_STTL_ICLD_YN=N&FNCG_AMT_AUTO_RDPT_YN=N&PRCS_DVSN=00&CTX_AREA_FK100=&CTX_AREA_NK100=";
 
       HttpRequest request = HttpRequest.newBuilder()
           .uri(URI.create(url + apiPath + "?CANO=" + cano + queryStr))
@@ -191,7 +203,8 @@ public class KISServiceImpl implements KISService {
           .header("authorization", "Bearer " + token)
           .header("appkey", appKey)
           .header("appsecret", appSecret)
-          .header("tr_id", "VTTC8434R") // 모의투자 잔고조회 TR ID
+          .header("tr_id", "VTTC8434R")
+          .header("tr_cont", "N")
           .GET()
           .build();
 

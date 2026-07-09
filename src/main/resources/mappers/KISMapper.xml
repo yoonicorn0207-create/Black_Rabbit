@@ -29,7 +29,9 @@
 
   <!-- username을 이용하여 kis app key/ secret key가져오기 -->
   <select id="getKisApiKey" parameterType="KISTokenDTO" resultType="KISTokenDTO">
-    SELECT encrypted_app_secret, mock_account_no, encrypted_app_key
+    SELECT encrypted_app_secret AS secretKey,
+      mock_account_no AS mockAccount,
+      encrypted_app_key AS appKey
     FROM HC_user
     WHERE 1=1
     AND username = #{username}

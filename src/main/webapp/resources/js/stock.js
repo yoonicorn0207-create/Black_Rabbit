@@ -121,7 +121,12 @@ async function renderHoldings() {
     const response = await fetch('/api/myHoldings');
     if (!response.ok) throw new Error('데이터 로드 실패');
 
-    const data = await response.json();
+    const res = await response.json();
+
+    if(!res.state){
+      openModal(res.failMsg || "보유종목 리스트를 가져오지 못했습니다");
+      return;
+    }
 
     const list = document.getElementById('holding-list');
     // 1. 헤더 수정: 4개 -> 5개 컬럼으로 (종목, 수량, 평단, 현재, 수익) (2026_0701 수정)
@@ -136,6 +141,8 @@ async function renderHoldings() {
     // 1. 도넛 차트 데이터 준비
     const chartSeries = [];
     const chartLabels = [];
+
+    const data = res.data;
 
     data.forEach(s => {
       const profit = s.profit_rate;
@@ -251,12 +258,12 @@ async function executeOrder(type) {
     body: JSON.stringify({stockCode: currentStockCode, stockName: stockName, quantity: parseInt(quantity)})
   });
 
-  if (response.ok) {
-    alert(type === 'buy' ? "매수가 완료되었습니다." : "매도가 완료되었습니다.");
+
+
+  if (result.state) {
     renderHoldings(); // 리스트 갱신
-  } else {
-    alert("거래 처리에 실패했습니다. 잔액 또는 보유 수량을 확인하세요.");
   }
+  openModal(result.failMsg);
 }
 
 // [추가] 매도 시 입력창 자동 채우기(2026_0701)
@@ -301,9 +308,9 @@ async function loadUserInfo() {
      */
 // [중요] 페이지 로드 시 실행되는 부분 (2026_0626에 추가)
 document.addEventListener('DOMContentLoaded', async () => {
-  renderHoldings(); // 보유 종목 표 출력
   fetchAndRender();  // 1. Watchlist 서버 데이터 호출
   loadUserInfo(); // 사용자 아이디 출력 위해 호출
+  renderHoldings(); // 보유 종목 표 출력
 
   // 1. 차트 초기화 (초기 데이터는 빈 배열로 시작)
   chart.updateSeries([{data: []}]); //(2026_0629 추가)
