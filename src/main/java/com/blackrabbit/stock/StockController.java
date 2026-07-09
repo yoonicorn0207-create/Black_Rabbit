@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -203,7 +204,38 @@ public class StockController {
             e.printStackTrace();
             return new ResultDTO(true, "서버 오류 발생");
         }
-    }////BlackRabbit 메인페이지 - 주식 매도
+    }
 
+    /// /BlackRabbit 메인페이지 - 주식 매도
+
+
+    /* 7. 예수금 조회 API */
+    @RequestMapping(value = "/api/userBalance", method = RequestMethod.GET)
+    @ResponseBody
+    public Map<String, Object> getUserBalance(HttpSession session) {
+        String userId = (String) session.getAttribute("userId");
+        // 서비스 단에서 DB의 HC_user 테이블의 balance를 가져오는 메서드 필요
+        long balance = stockService.getUserBalance(userId);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("balance", balance);
+        return response;
+    }//예수금 조회 API
+
+    /* 8. KOSPI & KOSDAQ 지수 호츨API (2026_0708) */
+    @RequestMapping(value = "/api/market-indices", method = RequestMethod.GET)
+    @ResponseBody
+    public ResponseEntity<MarketIndexDTO> getMarketIndices() {
+        // 1. 단일 객체로 서비스 호출
+        MarketIndexDTO marketIndex = stockService.getLatestIndex();
+
+        // 2. 데이터가 없을 경우 처리
+        if (marketIndex == null) {
+            return ResponseEntity.noContent().build();
+        }
+
+        // 3. 단일 객체 그대로 반환
+        return ResponseEntity.ok(marketIndex);
+    }
 
 }// StockController

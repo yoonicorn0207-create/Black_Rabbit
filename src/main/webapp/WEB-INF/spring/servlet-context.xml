@@ -21,6 +21,8 @@
 			<mvc:exclude-mapping path="/api/signinDup" />
 			<mvc:exclude-mapping path="/api/userSignup" />
 			<mvc:exclude-mapping path="/api/getKisToken" />
+			<mvc:exclude-mapping path="/login" />
+			<mvc:exclude-mapping path="/" />
 			<bean class="com.blackrabbit.common.util.JwtInterceptor" />
 		</mvc:interceptor>
 
@@ -34,6 +36,8 @@
 			<mvc:exclude-mapping path="/api/signinDup" />
 			<mvc:exclude-mapping path="/api/userSignup" />
 			<mvc:exclude-mapping path="/api/getKisToken" />
+			<mvc:exclude-mapping path="/login" />
+			<mvc:exclude-mapping path="/" />
 			<bean class="com.blackrabbit.common.util.SessionCheckInterceptor" />
 		</mvc:interceptor>
 	</mvc:interceptors>

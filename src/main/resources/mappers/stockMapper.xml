@@ -144,4 +144,21 @@
         WHERE id = #{userId}
     </update>
 
+
+    <!-- 7. 예수금 조회 API (2026_0706 추가) -->
+    <select id="getBalanceById" parameterType="string" resultType="long">
+        SELECT balance
+        FROM HC_user
+        WHERE id = #{userId}
+    </select>
+
+    <!-- 8. KOSPI & KOSDAQ 지수 호츨API (2026_0708) -->
+    <select id="getLatestIndex" resultType="marketIndexDTO">
+        SELECT REPLACE(kospi, ',', '')  AS kospi,
+               REPLACE(kosdaq, ',', '') AS kosdaq
+        FROM HC_kospi_kosdaq
+        ORDER BY collected_date DESC LIMIT 1
+    </select>
+
+
 </mapper>

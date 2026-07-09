@@ -24,4 +24,10 @@ public interface StockService {
     /* 6. BlackRabbit 메인페이지 - 주식 매도 (2026_0701 추가) */
     boolean sellStock(String userId, String stockCode, int quantity);
 
+    /* 7. 예수금 조회 API */
+    long getUserBalance(String userId);
+
+    /* 8. KOSPI & KOSDAQ 지수 호츨API (2026_0708) */
+    MarketIndexDTO getLatestIndex();
+
 }// StockService

@@ -24,12 +24,12 @@
             </div>
         </div>
 
-        <div class="flex items-center gap-4 justify-between ">
-            <!-- 로그인 사용자 보유금 -->
-            <div class="bg-gray-900 px-4 py-1 rounded border border-gray-700 text-right">
-                <p class="text-[9px] text-gray-500">AVAILABLE BALANCE</p>
-                <p class="font-bold text-white font-mono">₩ 12,450,000</p>
-            </div>
+    <div class="flex items-center gap-4 justify-between ">
+        <!-- 로그인 사용자 보유금 (2026_0706 수정)-->
+        <div class="bg-gray-900 px-4 py-1 rounded border border-gray-700 text-right">
+            <p class="text-[9px] text-gray-500">AVAILABLE BALANCE</p>
+            <p id="available-balance" class="font-bold text-white font-mono">₩ 0</p>
+        </div>
 
             <!-- 로그아웃 버튼 -->
             <div class="flex items-center gap-3">
@@ -37,10 +37,10 @@
                     class="text-xs font-bold text-yellow-400 cursor-pointer hover:underline"
                     onclick="openEditModal()"></span>
 
-                <button class="text-xs text-gray-500 hover:text-red-400 transition font-bold" onclick="logout()">[LOGOUT]</button>
-            </div>
+            <button class="text-xs text-gray-500 hover:text-red-400 transition font-bold" onclick="logout()">[LOGOUT]</button>
         </div>
-    </header>
+    </div>
+</header>
 
     <!-- 메인 섹션 -->
     <main class="flex-1 flex gap-3 overflow-hidden">
@@ -60,21 +60,20 @@
             <div id="watchlist" class="flex-1 overflow-y-auto space-y-1"></div>
         </section>
 
-        <!-- 메인 차트 섹션 -->
-        <section class="flex-1 flex flex-col bg-panel rounded p-3">
-            <!-- 선택 종목명 및 봉 선택-->
-            <div class="flex gap-2 mb-2 items-center">
-                <span class="text-base font-bold text-white mr-2" id="stock-title">삼성전자</span>
-                <button onclick="updatePeriod('minute', this)" class="period-btn active px-3 py-1 rounded text-sm">1분
-                </button>
-                <button onclick="updatePeriod('hour', this)" class="period-btn px-3 py-1 rounded text-sm">1시간</button>
-                <button onclick="updatePeriod('day', this)" class="period-btn px-3 py-1 rounded text-sm">1일</button>
-                <button onclick="updatePeriod('week', this)" class="period-btn px-3 py-1 rounded text-sm">1주</button>
-                <button onclick="updatePeriod('month', this)" class="period-btn px-3 py-1 rounded text-sm">1월</button>
-            </div>
-            <!-- 차트 -->
-            <div id="main-chart"></div>
-        </section>
+    <!-- 메인 차트 섹션 -->
+    <section class="flex-1 flex flex-col bg-panel rounded p-3">
+        <!-- 선택 종목명 및 봉 선택-->
+        <div class="flex gap-2 mb-2 items-center">
+            <span class="text-base font-bold text-white mr-2" id="stock-title">삼성전자</span>
+            <button onclick="updatePeriod('minute', this)" class="period-btn px-3 py-1 rounded text-sm">1분</button>
+            <button onclick="updatePeriod('hour', this)" class="period-btn px-3 py-1 rounded text-sm">1시간</button>
+            <button onclick="updatePeriod('day', this)" class="period-btn active px-3 py-1 rounded text-sm">1일</button>
+            <button onclick="updatePeriod('week', this)" class="period-btn px-3 py-1 rounded text-sm">1주</button>
+            <button onclick="updatePeriod('month', this)" class="period-btn px-3 py-1 rounded text-sm">1월</button>
+        </div>
+        <!-- 차트 -->
+        <div id="main-chart"></div>
+    </section>
 
         <!-- 우측 섹션 -->
         <section class="w-1/5 flex flex-col gap-3">
