@@ -4,12 +4,30 @@
 <mapper namespace="com.blackrabbit.stock.StockMapper">
 
     <!-- * 1. BlackRabbit 메인페이지 - WatchList  (2026_0626에 추가) -->
-    <select id="getPresent_StockList" resultType="stockDTO">
+    <!-- 페이지네이션 및 검색 기능 추가(260713) -->
+    <select id="getPresent_StockList" resultType="stockDTO" parameterType="map">
         SELECT stck_shrn_iscd, hts_kor_isnm, stck_prpr, prdy_ctrt, prdy_vrss_sign
         FROM HC_stock_daily1
         WHERE stck_shrn_iscd IS NOT NULL
-          AND hts_kor_isnm IS NOT NULL
-          AND hts_kor_isnm != ''
+            AND hts_kor_isnm IS NOT NULL
+            AND hts_kor_isnm != ''
+            <if test="keyword != null and keyword != ''">
+                AND hts_kor_isnm LIKE CONCAT('%', #{keyword}, '%')
+            </if>
+        ORDER BY stck_shrn_iscd
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <!-- 1.1 화면에 출력중인 데이터의 수/ 총 데이터의 수(260713) -->
+    <select id="getPresent_StockListCount" resultType="int" parameterType="map">
+        SELECT COUNT(*)
+        FROM HC_stock_daily1
+        WHERE stck_shrn_iscd IS NOT NULL
+            AND hts_kor_isnm IS NOT NULL
+            AND hts_kor_isnm != ''
+        <if test="keyword != null and keyword != ''">
+            AND hts_kor_isnm LIKE CONCAT('%', #{keyword}, '%')
+        </if>
     </select>
 
 

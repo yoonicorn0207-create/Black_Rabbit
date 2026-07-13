@@ -1,6 +1,13 @@
 // ======================== 전역 변수 선언 ==============================
 let allStocks = []; // 전역 변수 추가
 let currentStockCode = "005930"; // 기본값 삼성전자
+let currentPage = 0;
+const PAGE_SIZE = 30;
+let currentKeyword = "";
+let totalCount = 0;
+let isLoading = false;
+let hasMore = true;
+
 
 
 // ============================== apexChart config ==============================
@@ -88,18 +95,45 @@ const donutChart = new ApexCharts(document.querySelector("#donut-chart"), {
 /* * [API 통신] (2026_0626에 추가)
      * fetchAndRender: 서버의 /api/stockList 경로에서 종목 데이터를 가져와
      * 렌더링 함수인 renderWatchlist로 데이터를 전달.
+     *
+     * 기능 추가 260713
+     * - 페이지네이션
+     * - 현재 출력중인 데이터 수/ 총 데이터 수
      */
 async function fetchAndRender(opts = {}) {
+  if (isLoading || !hasMore) return; // 중복 요청/더 없을 때 방지
+  isLoading = true;
+
   try {
-    const response = await fetch('/api/stockList', { silent: opts.silent });
+    const params = new URLSearchParams({
+      page: currentPage,
+      size: PAGE_SIZE,
+      keyword: currentKeyword
+    });
+
+    const response = await fetch(
+      `/api/stockList?${params}`,
+      { silent: opts.silent }
+    );
     const data = await response.json();
+
+    const newStocks = Array.isArray(data.list) ? data.list : [];
+    totalCount = data.total || 0;
+
     // 1. 전체 데이터를 전역 변수에 담기
-    allStocks = Array.isArray(data) ? data : []; // 데이터를 전역 변수에 보관(2026_0629)
+    // 누적: 검색/첫 로딩이면 새로 시작, 스크롤이면 이어붙이기
+    allStocks = currentPage === 0 ? newStocks : [...allStocks, ...newStocks];
 
     // 2. 초기 리스트 렌더링
-    await renderWatchlist(allStocks); // 초기에는 전체 출력(2026_0629)
+    renderWatchlist(newStocks, currentPage === 0);
+    updateCountDisplay();
+
+    hasMore = allStocks.length < totalCount;
+    currentPage++;
   } catch (error) {
     console.error('에러:', error);
+  }finally {
+    isLoading = false;
   }
 }//
 
@@ -107,10 +141,14 @@ async function fetchAndRender(opts = {}) {
 /* * [Watchlist UI 렌더링] (2026_0626에 추가)
  * renderWatchlist: API로 받은 stockList 배열을 순회하며 HTML 요소를 생성하여 #watchlist 영역에 삽입.
  * 클릭 시 상단 종목 타이틀을 변경하는 기능을 포함.
+ *
+ * 기능 추가 260713
+ * - 페이지네이션
+ * - 현재 출력중인 데이터 수/ 총 데이터 수
  */
-function renderWatchlist(stockList) {
+function renderWatchlist(stockList, reset = false) {
   const wl = document.getElementById('watchlist');
-  wl.innerHTML = '';
+  if (reset) wl.innerHTML = '';
 
   // stockList가 배열인지 확인 후 처리
   if (!Array.isArray(stockList)) return;
@@ -140,13 +178,44 @@ function renderWatchlist(stockList) {
       // 3. 차트 데이터 로드
       const activeBtn = document.querySelector('.period-btn.active');
       const period = activeBtn ? activeBtn.innerText : 'day';
-
       await fetchChartData(code, period);
     };
 
     wl.appendChild(div);
   });
 }
+
+
+// ============================== 노출 개수 표시 ==============================
+function updateCountDisplay() {
+  document.getElementById('watchlist-count').innerText =
+    `${allStocks.length.toLocaleString()} / ${totalCount.toLocaleString()}`;
+}
+
+// ============================== 검색 (버튼 + 디바운스 둘 다 지원) ==============================
+function searchStock() {
+  const keyword = document.getElementById('stockInput').value.trim();
+  currentKeyword = keyword;
+  currentPage = 0;
+  hasMore = true;
+  fetchAndRender({ silent: true });
+}
+
+let searchDebounceTimer = null;
+document.getElementById('stockInput').addEventListener('input', () => {
+  clearTimeout(searchDebounceTimer);
+  searchDebounceTimer = setTimeout(searchStock, 300); // 타이핑 멈추고 0.3초 후 자동 검색
+});
+
+// ============================== 무한 스크롤 ==============================
+document.getElementById('watchlist').addEventListener('scroll', function () {
+  const { scrollTop, scrollHeight, clientHeight } = this;
+  // 스크롤이 하단 50px 이내로 오면 다음 페이지 로드
+  if (scrollHeight - scrollTop - clientHeight < 50) {
+    fetchAndRender({ silent: true }); // 스크롤 로딩은 조용히 (전체 화면 로딩창 X)
+  }
+});
+
 
 
 // ============================== 분봉/ 시간봉 차트 ==============================

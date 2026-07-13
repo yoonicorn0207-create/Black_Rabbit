@@ -41,6 +41,10 @@
         <typeAlias alias="kisOrderDTO"
                    type="com.blackrabbit.kis.KISOrderDTO"/>
 
+        <typeAlias alias="StockListResDTO"
+                   type="com.blackrabbit.stock.StockListResDTO"/>
+
+
     </typeAliases>
 
 

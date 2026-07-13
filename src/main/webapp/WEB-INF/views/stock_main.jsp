@@ -42,16 +42,16 @@
 
         <!-- 좌측 섹션 -->
         <section class="w-1/5 flex flex-col gap-2">
-            <h2 class="text-xs font-bold uppercase">Watchlist</h2>
-            <!-- 검색 -->
+            <div class="flex justify-between items-center">
+                <h2 class="text-xs font-bold uppercase">Watchlist</h2>
+                <span id="watchlist-count" class="text-[10px] text-gray-500"></span>
+            </div>
             <div class="flex gap-1">
                 <input type="text" id="stockInput"
                        placeholder="종목 검색..."
-                       oninput="filterWatchlist(this.value)"
                        class="flex-1 p-2 bg-gray-900 border border-gray-700 rounded text-sm">
-                <button onclick="addStock()" class="px-3 bg-gray-700 rounded text-sm text-white">검색</button>
+                <button onclick="searchStock()" class="px-3 bg-gray-700 rounded text-sm text-white">검색</button>
             </div>
-            <!-- 종목 리스트 출력 -->
             <div id="watchlist" class="flex-1 overflow-y-auto space-y-1"></div>
         </section>
 

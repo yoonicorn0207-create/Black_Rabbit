@@ -34,8 +34,12 @@ public class StockController {
     /* 1. BlackRabbit 메인페이지 - WatchList (2026_0626에 추가) */
     @RequestMapping(value = "/api/stockList", method = RequestMethod.GET)
     @ResponseBody
-    public List<StockDTO> getPresent_stockList() {
-        return stockService.getPresent_StockList();
+    public StockListResDTO getPresent_stockList(
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "30") int size,
+        @RequestParam(required = false) String keyword
+    ) {
+        return stockService.getPresent_StockList(page, size, keyword);
     }//BlackRabbit 메인페이지 - WatchList 데이터 호출 [HC_stock_daily1 테이블] (2026_0626에 추가)
 
 
