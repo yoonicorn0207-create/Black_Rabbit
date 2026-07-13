@@ -1,15 +1,11 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BlackRabbit Login</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="<c:url value='/resources/css/login.css'/>">
-</head>
+<c:set var="pageTitle" value="BLACK RABBIT HTS Login" />
+<%@ include file="/WEB-INF/views/common/layout-top.jsp" %>
+<link rel="stylesheet" href="<c:url value='/resources/css/login.css'/>">
+
 <body>
+
     <video id="bg-video" autoplay muted loop playsinline>
         <source src="<c:url value='/resources/video/login_vedio.mp4'/>" type="video/mp4">
     </video>
@@ -36,7 +32,5 @@
         </div>
     </div>
 
-    <script src="<c:url value='/resources/js/login.js'/>"></script>
-    <%@ include file="/WEB-INF/views/common/modal.jsp" %>
-</body>
-</html>
+<script src="<c:url value='/resources/js/login.js'/>"></script>
+<%@ include file="/WEB-INF/views/common/layout-bottom.jsp" %>

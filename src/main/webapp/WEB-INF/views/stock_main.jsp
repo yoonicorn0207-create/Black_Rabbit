@@ -1,15 +1,10 @@
-<%@ page isELIgnored="true" %>
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <title>BLACK RABBIT HTS</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
-    <link rel="stylesheet" href="<c:url value='/resources/css/stock.css'/>">
-</head>
+<c:set var="pageTitle" value="BLACK RABBIT HTS" />
+<%@ include file="/WEB-INF/views/common/layout-top.jsp" %>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<link rel="stylesheet" href="<c:url value='/resources/css/stock.css'/>">
+
 <body class="h-screen flex flex-col overflow-hidden p-2">
     <!-- 헤더 -->
     <header class="h-14 flex items-center justify-between px-4 mb-2 border-b border-gray-800">
@@ -104,10 +99,7 @@
             </div>
         </section>
     </main>
-</body>
+
 <script src="<c:url value='/resources/js/stock.js'/>"></script>
-<script src="<c:url value='/resources/js/common.js'/>"></script>
-<%@ include file="/WEB-INF/views/common/modal.jsp" %>
 <%@ include file="/WEB-INF/views/editUserInfoModal.jsp" %>
-</body>
-</html>
+<%@ include file="/WEB-INF/views/common/layout-bottom.jsp" %>

@@ -15,10 +15,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Optional;
+import java.util.*;
 
 @Service("KISService")
 public class KISServiceImpl implements KISService {
@@ -212,11 +209,27 @@ public class KISServiceImpl implements KISService {
 
       if (response.statusCode() == 200) {
         Map<String, Object> resultBody = objectMapper.readValue(response.body(), Map.class);
+
         // 한투 API는 200이 나와도 rt_cd가 "0"이 아니면 실패인 경우가 많음
         if ("0".equals(resultBody.get("rt_cd"))) {
-          return new ResultDTO(true, "조회 성공", resultBody);
+          Map<String, Object> data = new HashMap<>();
+          List<Map<String, String>> output2List = (List<Map<String, String>>) resultBody.get("output2");
+
+          if (output2List != null && !output2List.isEmpty()) {
+            Map<String, String> firstItem = output2List.get(0);
+
+            // 매수 가능 예수금: nxdy_excc_amt
+            // 예수금 총액: dnca_tot_amt
+            // 예수금+ 평가액: tot_evlu_amt
+            // 평가 손익 합계: evlu_pfls_smtl_amt
+            data.put("balance", firstItem.get("nxdy_excc_amt"));
+            data.put("holdings", resultBody.get("output1"));
+
+          }
+
+          return new ResultDTO(true, "조회 성공", data);
         }else{
-          return new ResultDTO(false, "조회 실패", resultBody);
+          return new ResultDTO(false, "조회 실패", resultBody.get("msg1"));
         }
       } else {
         return new ResultDTO(false, "API 조회 실패: " + response.body(), null);

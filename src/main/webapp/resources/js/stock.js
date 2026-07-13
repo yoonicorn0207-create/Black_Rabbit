@@ -68,7 +68,16 @@ const donutChart = new ApexCharts(document.querySelector("#donut-chart"), {
   series: [], // 빈 배열로 시작
   labels: [],
   chart: {type: 'donut', height: 160},
-  legend: {show: false}
+  legend: {show: false},
+  noData: {
+    text: '보유 종목이 없습니다.',
+    align: 'center',
+    verticalAlign: 'middle',
+    style: {
+      color: '#6b7280',
+      fontSize: '14px'
+    }
+  },
 });
 
 
@@ -80,15 +89,15 @@ const donutChart = new ApexCharts(document.querySelector("#donut-chart"), {
      * fetchAndRender: 서버의 /api/stockList 경로에서 종목 데이터를 가져와
      * 렌더링 함수인 renderWatchlist로 데이터를 전달.
      */
-async function fetchAndRender() {
+async function fetchAndRender(opts = {}) {
   try {
-    const response = await fetch('/api/stockList');
+    const response = await fetch('/api/stockList', { silent: opts.silent });
     const data = await response.json();
     // 1. 전체 데이터를 전역 변수에 담기
     allStocks = Array.isArray(data) ? data : []; // 데이터를 전역 변수에 보관(2026_0629)
 
     // 2. 초기 리스트 렌더링
-    renderWatchlist(allStocks); // 초기에는 전체 출력(2026_0629)
+    await renderWatchlist(allStocks); // 초기에는 전체 출력(2026_0629)
   } catch (error) {
     console.error('에러:', error);
   }
@@ -120,7 +129,7 @@ function renderWatchlist(stockList) {
             `;
 
     // 리스트 클릭 시 차트 타이틀 변경 예시 (필요 시)
-    div.onclick = () => {
+    div.onclick = async () => {
       currentStockCode = code; // 전역 변수 업데이트
       document.getElementById('stock-title').innerText = name;
 
@@ -132,7 +141,7 @@ function renderWatchlist(stockList) {
       const activeBtn = document.querySelector('.period-btn.active');
       const period = activeBtn ? activeBtn.innerText : 'day';
 
-      fetchChartData(code, period);
+      await fetchChartData(code, period);
     };
 
     wl.appendChild(div);
@@ -142,11 +151,11 @@ function renderWatchlist(stockList) {
 
 // ============================== 분봉/ 시간봉 차트 ==============================
 // [추가] fetch를 사용하는 새로운 차트 데이터 로드 함수 (2026_0629 생성)
-async function fetchChartData(stockCode, period) {
+async function fetchChartData(stockCode, period, opts = {}) {
   try {
     // 서버의 컨트롤러로 요청 전송
     const url = period === 'minute' || period === 'hour' ? "minHourChartData" : "chartData";
-    const response = await fetch(`/api/${url}?code=${stockCode}&period=${period}`);
+    const response = await fetch(`/api/${url}?code=${stockCode}&period=${period}`, { silent: opts.silent });
 
     if (!response.ok) throw new Error('서버 데이터 응답 실패');
 
@@ -211,9 +220,9 @@ async function fetchChartData(stockCode, period) {
 /* * [수정된 보유 종목 UI 렌더링] (2026_0630)
    * 서버에서 API(/api/myHoldings)를 호출해 실제 데이터를 가져와 그립니다.
    */
-async function renderHoldings() {
+async function renderHoldings(opts = {}) {
   try {
-    const response = await fetch('/api/myHoldings');
+    const response = await fetch('/api/myHoldings', { silent: opts.silent });
     if (!response.ok) throw new Error('데이터 로드 실패');
 
     const res = await response.json();
@@ -223,7 +232,24 @@ async function renderHoldings() {
       return;
     }
 
+    // 예수금 화면에 그리기
+    const balance = Number(res?.data?.balance);
+    document.getElementById('available-balance').innerText = `₩ ${balance.toLocaleString()}`;
+
+    const holdings = res?.data?.holdings;
+    // 보유종목 화면에 그리기
     const list = document.getElementById('holding-list');
+
+
+    // 보유 종목이 없을 경우
+    if (!holdings || holdings.length === 0) {
+      // 차트 비우기
+      list.innerHTML += `<div class="text-center text-gray-500 py-10">보유 종목이 없습니다.</div>`;
+      donutChart.updateSeries([]);
+      return; // 함수 종료
+    }
+
+
     // 1. 헤더 수정: 4개 -> 5개 컬럼으로 (종목, 수량, 평단, 현재, 수익) (2026_0701 수정)
     list.innerHTML = `<div class="grid grid-cols-5 gap-1 text-gray-500 border-b border-gray-800 pb-1 mb-1 text-[10px]">
                         <span class="text-center">종목</span>
@@ -237,29 +263,37 @@ async function renderHoldings() {
     const chartSeries = [];
     const chartLabels = [];
 
-    const data = res.data;
 
-    data.forEach(s => {
-      const profit = s.profit_rate;
+    holdings.forEach(s => {
+      const name = s.stock_name || s.prdt_name || "알수없음";
+      const qty = Number(s.total_quantity || s.hldg_qty || 0);
+      const avgPrice = Number(s.avg_buy_price || s.pchs_avg_pric || 0);
+      const currentPrice = Number(s.current_price || s.prpr || 0);
+      const profit = Number(s.profit_rate || s.evlu_pfls_rt || 0);
+      const iscd = s.stck_shrn_iscd || s.pdno || "";
+
       const color = profit >= 0 ? 'text-up' : 'text-down';
+
 
       // 2. 행 클릭 시 매도 정보 자동 입력 (onclick 이벤트 추가) (2026_0701)
       list.innerHTML += `
     <div class="grid grid-cols-5 gap-1 items-center text-[11px] py-1 border-b border-gray-900 cursor-pointer hover:bg-gray-800"
-         onclick="prepareSell('${s.stock_name}', ${s.total_quantity}, '${s.stck_shrn_iscd}', ${s.avg_buy_price})">
-        <span class="font-bold text-white truncate text-center">${s.stock_name}</span>
-        <span class="font-mono text-gray-300 text-center">${s.total_quantity.toLocaleString()}</span>
-        <span class="font-mono text-center">₩ ${s.avg_buy_price.toLocaleString()}</span>
-        <span class="font-mono text-center">₩ ${s.current_price.toLocaleString()}</span>
-        <span class="${color} font-bold text-center">${profit}%</span>
+         onclick="prepareSell('${name}', ${qty}, '${iscd}', ${avgPrice})">
+        <span class="font-bold text-white truncate text-center">${name}</span>
+        <span class="font-mono text-gray-300 text-center">${qty.toLocaleString()}</span>
+        <span class="font-mono text-center">₩ ${avgPrice.toLocaleString()}</span>
+        <span class="font-mono text-center">₩ ${currentPrice.toLocaleString()}</span>
+        <span class="${color} font-bold text-center">${profit.toFixed(2)}%</span>
     </div>`;
 
       // 2. 도넛 차트용 데이터 배열 채우기
       // 예: (현재가 * 수량)으로 비중 계산
-      const evaluationAmount = s.current_price * s.total_quantity;
-      chartSeries.push(evaluationAmount);
-      chartLabels.push(s.stock_name);
+      chartSeries.push(currentPrice * qty);
+      chartLabels.push(name);
     });
+
+    console.log("chartSeries : ", chartSeries)
+    console.log("chartLabels : ", chartLabels)
 
     // 3. 도넛 차트 업데이트 (ApexCharts 제공 메서드)
     donutChart.updateOptions({
@@ -307,30 +341,45 @@ function filterWatchlist(keyword) {
 // ============================== 매수/ 매도 ==============================
 // [수정] 매수/매도 공통 실행 함수(2026_0701)
 async function executeOrder(type) {
-  const quantity = document.getElementById('order-quantity').value;
-  const stockName = document.getElementById('order-stock-name').innerText;
+  try{
+    const quantity = document.getElementById('order-quantity').value;
+    const stockName = document.getElementById('order-stock-name').innerText;
 
-  if (!quantity || quantity <= 0) {
-    openModal("수량을 확인하세요.");
-    return;
+    if (!quantity || quantity <= 0) {
+      openModal("수량을 확인하세요.");
+      return;
+    }
+
+    const url = type === 'buy' ? '/api/buyStock' : '/api/sellStock';
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        stockCode: currentStockCode,
+        stockName,
+        quantity: parseInt(quantity)
+      })
+    });
+
+    const result = await response.json();
+
+
+    if (result.state) {
+      // kis 모의투자의 경우 매수/매도가 바로 kis 서버에 반영되지 않으므로 2.5초의 딜레이 부여
+      setTimeout(async()=>{
+        await renderHoldings({ silent: true }); // 리스트 갱신
+      }, 2500)
+
+      // await loadUserBalance(); // 2. [추가] 예수금 즉시 갱신 (2026_0706)
+      document.getElementById('order-quantity').value = '';// 3. 입력창 초기화 (선택 사항) (2026_0706)
+    }
+
+    await openModal(result.failMsg);
+
+  }catch(error){
+    console.error(error)
   }
-
-  const url = type === 'buy' ? '/api/buyStock' : '/api/sellStock';
-
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({stockCode: currentStockCode, stockName: stockName, quantity: parseInt(quantity)})
-  });
-
-
-
-  if (result.state) {
-    await renderHoldings(); // 리스트 갱신
-    await loadUserBalance(); // 2. [추가] 예수금 즉시 갱신 (2026_0706)
-    document.getElementById('order-quantity').value = '';// 3. 입력창 초기화 (선택 사항) (2026_0706)
-  }
-  await openModal(result.failMsg);
 }
 
 
@@ -340,8 +389,7 @@ function prepareSell(name, quantity, code, avgPrice) {
   document.getElementById('order-stock-name').innerText = name;
   // 평단가 표시를 위해 새로운 span 추가 또는 기존 영역 활용
   // 여기서는 종목명 옆에 평단가를 함께 표시하도록 구성
-  document.getElementById('order-stock-name').innerText = `${name} (평단: ₩${avgPrice.toLocaleString()})`;
-
+  document.getElementById('order-stock-price').innerText =`(평단: ₩ ${avgPrice.toLocaleString()})`
   document.getElementById('order-quantity').value = quantity;
   currentStockCode = code;
 }
@@ -350,6 +398,7 @@ function prepareSell(name, quantity, code, avgPrice) {
 
 // ============================== 예수금 잔액 출력 ==============================
 // [추가] 예수금 정보를 서버에서 가져와 화면에 출력 (2026_0706)
+// 보유 종목 api와 통합 진행 260713
 async function loadUserBalance() {
   try {
     const response = await fetch('/api/userBalance');
@@ -430,8 +479,8 @@ async function logout() {
 }
 
 // ========================== 로그인된 사용자 id 출력을 위한 로직 ===========================
-async function loadUserInfo() {
-  const res = await fetch('/api/userInfo');
+async function loadUserInfo(opts = {}) {
+  const res = await fetch('/api/userInfo', { silent: opts.silent });
   const data = await res.json();
   if(data.userId) {
     document.getElementById('loginUserId').innerText = data.userId + "님";
@@ -446,23 +495,32 @@ async function loadUserInfo() {
      */
 // [중요] 페이지 로드 시 실행되는 부분 (2026_0626에 추가)
 document.addEventListener('DOMContentLoaded', async () => {
-  await fetchAndRender();  //  Watchlist 서버 데이터 호출
-  await loadUserInfo(); // 사용자 아이디 출력 위해 호출
-  await renderHoldings(); // 보유 종목 표 출력
-  await loadUserBalance(); // 예수금 불러오기 (2026_0706)
+  try {
+    showLoading();
+    // 서로 의존관계 없는 초기 데이터는 동시에 호출
+    await Promise.all([
+      fetchAndRender(),   // Watchlist 서버 데이터 호출
+      loadUserInfo(),     // 사용자 아이디 출력 위해 호출
+      // loadUserBalance(); // 예수금 불러오기 (2026_0706)
+    ]);
 
+    // 1. 차트 초기화 (초기 데이터는 빈 배열로 시작)
+    chart.updateSeries([{data: []}]); //(2026_0629 추가)
+    chart.render();
+    donutChart.render();
 
-  // 1. 차트 초기화 (초기 데이터는 빈 배열로 시작)
-  chart.updateSeries([{data: []}]); //(2026_0629 추가)
-  chart.render();
-  donutChart.render();
-
-  // 2. 페이지 로드 시 삼성전자(005930) 기본 차트 로딩 (2026_0629)
-  await fetchChartData("005930", "1D");
+    // render 완료 후에 실제 데이터 채워넣기
+    await Promise.all([
+      fetchChartData("005930", "1D"), // 삼성전자 기본값 세팅
+      renderHoldings() // 보유 종목 호출
+    ]);
+  } finally {
+    hideLoading();
+  }
 
 
   // 5초마다 데이터 갱신
-  setInterval(fetchAndRender, 50000);
+  setInterval(() => fetchAndRender({ silent: true }), 50000);
   //3분마다 (KOSPI & KOSDAQ)지수로드
-  setInterval(updateMarketIndices, 180000);
+  setInterval(() => updateMarketIndices({ silent: true }), 180000);
 });

@@ -107,12 +107,19 @@ public class StockController {
         }
 
         // 기존 로직 진행
+        Map<String, Object> response = new HashMap<>();
 
         // 3. 서비스 호출하여 리스트 변수에 담기
         List<UserHoldingStockDTO> userHoldingList = stockService.getMyHoldings(userId);
 
+        // 3-1. 사용자 예수금 반환
+        long balance = stockService.getUserBalance(userId);
+
+        response.put("balance", balance);
+        response.put("holdings", userHoldingList);
+
         // 4. 변수 반환
-        return new ResultDTO(true, "", userHoldingList);
+        return new ResultDTO(true, "", response);
     }
 
     /// BlackRabbit 메인페이지 - 회원 보유종목 리스트
