@@ -99,6 +99,7 @@ const donutChart = new ApexCharts(document.querySelector("#donut-chart"), {
      * 기능 추가 260713
      * - 페이지네이션
      * - 현재 출력중인 데이터 수/ 총 데이터 수
+     * 무한스크롤 -> 다음 페이지를 불러와 뒤에 이어 붙일때만 사용!!
      */
 async function fetchAndRender(opts = {}) {
   if (isLoading || !hasMore) return; // 중복 요청/더 없을 때 방지
@@ -136,6 +137,43 @@ async function fetchAndRender(opts = {}) {
     isLoading = false;
   }
 }//
+
+
+
+// ============================== 실시간 시세 갱신 ==============================
+/* * [폴링 전용] (2026_0713 추가)
+ * refreshWatchlist: 페이지 진행 없이, 현재까지 로드된 개수만큼만 다시 불러와
+ * 화면에 보이는 종목들의 실시간 가격만 갱신. currentPage/hasMore는 건드리지 않음.
+ */
+async function refreshWatchlist(opts = {}) {
+  const loadedCount = allStocks.length || PAGE_SIZE; // 아직 하나도 안 불러왔으면 최소 1페이지만
+
+  try {
+    const params = new URLSearchParams({
+      page: 0,
+      size: loadedCount,       // 지금까지 로드된 만큼만 요청
+      keyword: currentKeyword
+    });
+
+    const response = await fetch(
+      `/api/stockList?${params}`,
+      { silent: true }
+    );
+    const data = await response.json();
+
+    const refreshedStocks = Array.isArray(data.list) ? data.list : [];
+    totalCount = data.total || 0;
+
+    allStocks = refreshedStocks;          // 페이지 유지, 개수 그대로 덮어쓰기
+    renderWatchlist(refreshedStocks, true); // reset=true로 리스트 다시 그림 (누적 X)
+    updateCountDisplay();
+
+    hasMore = allStocks.length < totalCount; // 최신 total 기준으로 갱신
+  } catch (error) {
+    console.error('실시간 갱신 에러:', error);
+  }
+}
+
 
 // ============================== watchList 화면 그리기 ==============================
 /* * [Watchlist UI 렌더링] (2026_0626에 추가)
@@ -229,7 +267,7 @@ async function fetchChartData(stockCode, period, opts = {}) {
     if (!response.ok) throw new Error('서버 데이터 응답 실패');
 
     const data = await response.json(); // DB에서 변환된 JSON 데이터 수신
-    console.log("받아온 데이터:", data); // F12 콘솔에서 확인용
+    //console.log("받아온 데이터:", data); // F12 콘솔에서 확인용
 
     // ApexCharts 차트 객체(chart)의 시리즈 데이터 업데이트
     // 가격 등을 차드에 반영하기 위해 가격 등을 숫자로 명시적 변환 진행
@@ -492,9 +530,12 @@ async function loadUserBalance() {
 
 // ============================== kospi& kosdaq ==============================
 // 3분(180,000ms)마다 KOSPI & KOSDAQ지수 업데이트(2026_0708)
-async function updateMarketIndices() {
+async function updateMarketIndices(opts = {}) {
   try {
-    const response = await fetch('/api/market-indices');
+    const response = await fetch(
+      '/api/market-indices',
+      { silent: opts.silent }
+    );
     if (!response.ok) throw new Error('네트워크 응답 오류');
 
     const data = await response.json();
@@ -596,7 +637,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 
   // 5초마다 데이터 갱신
-  setInterval(() => fetchAndRender({ silent: true }), 50000);
+  setInterval(() => refreshWatchlist({ silent: true }), 50000);
   //3분마다 (KOSPI & KOSDAQ)지수로드
   setInterval(() => updateMarketIndices({ silent: true }), 180000);
 });

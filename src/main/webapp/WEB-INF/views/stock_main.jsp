@@ -47,7 +47,7 @@
         <section class="w-1/5 flex flex-col gap-2">
             <div class="flex justify-between items-center">
                 <h2 class="text-xs font-bold uppercase">Watchlist</h2>
-                <span id="watchlist-count" class="text-[10px] text-gray-500"></span>
+                <span id="watchlist-count" class="text-[12px] text-gray-500"></span>
             </div>
             <div class="flex gap-1">
                 <input type="text" id="stockInput"
