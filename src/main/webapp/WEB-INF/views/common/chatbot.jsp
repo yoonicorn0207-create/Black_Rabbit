@@ -1,76 +1,5 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
-
-<style>
-    /* 메인 컬러 변수화 */
-    :root {
-        --chatbot-glow-rgb: 163, 230, 53; /* 네온 라임 */
-    }
-    /* 글래스모피즘 베이스 */
-    .chatbot-fab-glass {
-        background: rgba(var(--chatbot-glow-rgb), 0.15);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        box-shadow:
-            inset 0 1px 1px rgba(255, 255, 255, 0.25),
-            inset 0 -1px 1px rgba(0, 0, 0, 0.2);
-        transition: background 0.2s ease;
-    }
-
-    .chatbot-fab-glow:hover .chatbot-fab-glass {
-        background: rgba(var(--chatbot-glow-rgb), 0.25);
-    }
-
-    /* 네온 글로우 펄스 */
-    .chatbot-fab-glow {
-        animation: neon-pulse 2.4s ease-in-out infinite;
-    }
-
-    @keyframes neon-pulse {
-        0%, 100% {
-            box-shadow:
-                0 0 8px 2px rgba(var(--chatbot-glow-rgb), 0.5),
-                0 0 20px 6px rgba(var(--chatbot-glow-rgb), 0.25);
-        }
-        50% {
-            box-shadow:
-                0 0 14px 4px rgba(var(--chatbot-glow-rgb), 0.8),
-                0 0 32px 12px rgba(var(--chatbot-glow-rgb), 0.4);
-        }
-    }
-
-    .chatbot-fab-dragging {
-        animation: none !important;
-        box-shadow: 0 0 16px 4px rgba(var(--chatbot-glow-rgb), 0.7) !important;
-    }
-
-    /* ---- 채팅창 라임 포인트 컬러 ---- */
-    #chatbot-input:focus {
-        border-color: rgb(var(--chatbot-glow-rgb), 0.5) !important;
-        box-shadow: 0 0 0 2px rgba(var(--chatbot-glow-rgb), 0.2);
-    }
-
-    #chatbot-send {
-        background-color: rgb(var(--chatbot-glow-rgb), 0.7);
-        color: #1a1a1a;
-    }
-    #chatbot-send:hover {
-        background-color: rgba(var(--chatbot-glow-rgb), 0.95);
-    }
-
-    /* ---- iMessage 스타일 채팅 버블 ---- */
-    .chatbot-bubble-user {
-        background-color: #d3f8a0;  /* 연한 파스텔 라임 (눈 안 아픈 톤) */
-        color: #1a1a1a;
-        border-radius: 18px 18px 4px 18px;  /* 오른쪽 아래만 각지게 -> 말풍선 꼬리 느낌 */
-    }
-
-    .chatbot-bubble-bot {
-        background-color: #e9e9eb;  /* 아이폰 수신 메시지 색 (연회색) */
-        color: #1a1a1a;
-        border-radius: 18px 18px 18px 4px;  /* 왼쪽 아래만 각지게 */
-    }
-</style>
+<link rel="stylesheet" href="<c:url value='/resources/css/chatbot.css'/>">
 
 <!-- 드래그 가능한 챗봇 플로팅 버튼 -->
 <div id="chatbot-fab"
@@ -86,7 +15,7 @@
 
 <!-- 챗봇 채팅창 -->
 <div id="chatbot-window"
-     class="hidden fixed z-[9999] w-96 h-[520px] bg-white border border-gray-200 rounded-xl shadow-2xl flex flex-col overflow-hidden"
+     class="hidden fixed z-[9999] w-96 h-[520px] bg-white border border-gray-200 rounded-xl flex flex-col overflow-hidden"
      style="right: 24px; bottom: 96px;">
 
     <!-- 헤더 -->
