@@ -55,7 +55,7 @@
         </div>
     </div>
 </div>
-<script src="<c:url value='/resources/js/login.js'/>"></script>
+
 <script>
     let initialEmail = "";
     let isEmailChecked = true;
