@@ -454,13 +454,20 @@ async function executeOrder(type) {
 
 // ============================== 매도 시 평단가 추가 출력 ==============================
 // [추가] 매도 시 입력창 자동 채우기(2026_0701)
-function prepareSell(name, quantity, code, avgPrice) {
+// 보유종목 클릭 시 차트 업데이트 로직 추가(260713)
+async function prepareSell(name, quantity, code, avgPrice) {
   document.getElementById('order-stock-name').innerText = name;
-  // 평단가 표시를 위해 새로운 span 추가 또는 기존 영역 활용
-  // 여기서는 종목명 옆에 평단가를 함께 표시하도록 구성
-  document.getElementById('order-stock-price').innerText =`(평단: ₩ ${avgPrice.toLocaleString()})`
+  document.getElementById('order-stock-price').innerText = `(평단: ₩ ${avgPrice.toLocaleString()})`;
   document.getElementById('order-quantity').value = quantity;
   currentStockCode = code;
+
+  // 차트 타이틀도 갱신
+  document.getElementById('stock-title').innerText = name;
+
+  // 현재 선택된 기간(버튼)에 맞춰 차트 데이터 로드
+  const activeBtn = document.querySelector('.period-btn.active');
+  const period = activeBtn ? activeBtn.innerText : 'day';
+  await fetchChartData(code, period);
 }
 
 
