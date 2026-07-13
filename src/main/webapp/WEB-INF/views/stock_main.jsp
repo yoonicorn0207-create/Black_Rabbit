@@ -138,4 +138,5 @@
 
 <script src="<c:url value='/resources/js/stock.js'/>"></script>
 <%@ include file="/WEB-INF/views/editUserInfoModal.jsp" %>
+<%@ include file="/WEB-INF/views/common/chatbot.jsp" %>
 <%@ include file="/WEB-INF/views/common/layout-bottom.jsp" %>
