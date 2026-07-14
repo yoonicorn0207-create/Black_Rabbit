@@ -8,6 +8,10 @@
 		http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-4.3.xsd">
 	<mvc:annotation-driven />
 
+
+	<!-- [추가] Swagger UI 및 정적 리소스 위치 매핑 -->
+	<mvc:resources mapping="/swagger-ui/**" location="classpath:/META-INF/resources/webjars/springfox-swagger-ui/" />
+	<mvc:resources mapping="/webjars/**" location="classpath:/META-INF/resources/webjars/" />
 	<mvc:resources mapping="/resources/**" location="/resources/" />
 
 	<mvc:interceptors>
@@ -15,7 +19,6 @@
 		<mvc:interceptor>
 			<mvc:mapping path="/api/**" />
 			<!-- exclude-mappin에 선언된 api들은 interceptor를 타지 않아 토큰 체킹 안함	-->
-			<mvc:mapping path="/api/**" />
 			<mvc:exclude-mapping path="/api/login" />
 			<mvc:exclude-mapping path="/api/userLogin" />
 			<mvc:exclude-mapping path="/api/auth/refresh" />
@@ -23,6 +26,15 @@
 			<mvc:exclude-mapping path="/api/userSignup" />
 			<mvc:exclude-mapping path="/login" />
 			<mvc:exclude-mapping path="/" />
+
+			<!-- 추가해야 할 부분  2026.0716 Swagger UI위해 설정-->
+			<mvc:exclude-mapping path="/api/**" />
+
+			<!-- [Swagger 추가]  2026.0716 -->
+			<mvc:exclude-mapping path="/swagger-ui/**" />
+			<mvc:exclude-mapping path="/swagger-resources/**" />
+			<mvc:exclude-mapping path="/v2/api-docs/**" />
+			<mvc:exclude-mapping path="/webjars/**" />
 			<bean class="com.blackrabbit.common.util.JwtInterceptor" />
 		</mvc:interceptor>
 
@@ -36,6 +48,15 @@
 			<mvc:exclude-mapping path="/api/userSignup" />
 			<mvc:exclude-mapping path="/login" />
 			<mvc:exclude-mapping path="/" />
+
+			<!-- 추가해야 할 부분  2026.0716 Swagger UI위해 설정-->
+			<mvc:exclude-mapping path="/api/**" />
+
+			<!-- [Swagger 추가]  2026.0716 -->
+			<mvc:exclude-mapping path="/swagger-ui/**" />
+			<mvc:exclude-mapping path="/swagger-resources/**" />
+			<mvc:exclude-mapping path="/v2/api-docs/**" />
+			<mvc:exclude-mapping path="/webjars/**" />
 			<bean class="com.blackrabbit.common.util.SessionCheckInterceptor" />
 		</mvc:interceptor>
 	</mvc:interceptors>

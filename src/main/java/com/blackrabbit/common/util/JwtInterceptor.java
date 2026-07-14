@@ -15,6 +15,23 @@ public class JwtInterceptor extends HandlerInterceptorAdapter {
 
   @Override
   public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+
+    /*2026_0714 Swagger UI 설정*/
+    // 1. URI 값을 먼저 가져와야 합니다.
+    String uri = request.getRequestURI();
+    System.out.println("현재 인터셉터가 확인하는 URI: " + uri); // 이 로그가 콘솔에 찍히는지 보세요!
+    // 2. Swagger 및 로그인 관련 경로는 무조건 통과시킵니다.
+    // 주의: 실제 프로젝트의 로그인 경로가 /login 이라면 포함시켜 주세요.
+    if (uri.contains("/login") ||
+            uri.contains("/swagger") ||
+            uri.contains("/v2/api-docs") ||
+            uri.contains("/webjars")) {
+      return true;
+    }//
+
+    /*2026_0714 Swagger UI 설정*/
+
+
     String authHeader = request.getHeader("Authorization");
 
     if (authHeader != null && authHeader.startsWith("Bearer ")) {
