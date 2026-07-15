@@ -122,6 +122,8 @@ def initialize_all_tables():
         "HC_stock_master": """
             CREATE TABLE IF NOT EXISTS HC_stock_master (
                 id            INT AUTO_INCREMENT PRIMARY KEY,
+                sector        VARCHAR(100) NULL,
+                industry      VARCHAR(300) NULL,
                 ticker        VARCHAR(10) NOT NULL UNIQUE,
                 stock_name    VARCHAR(100) NOT NULL,
                 market_type   VARCHAR(10) NOT NULL,
@@ -208,7 +210,23 @@ def initialize_all_tables():
                 current_val VARCHAR(20),        -- 실시간 지수 값
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP -- 마지막 업데이트 시간
             );
-        """
+        """,
+        "HC_news_raw" : """
+        CREATE TABLE IF NOT EXISTS HC_news_raw (
+            id            BIGINT AUTO_INCREMENT PRIMARY KEY,
+            link          VARCHAR(500) NOT NULL COMMENT '네이버뉴스 링크 (중복체크 기준)',
+            originallink  VARCHAR(500) COMMENT '언론사 원문 링크',
+            title         VARCHAR(300) NOT NULL,
+            description   TEXT,
+            body          MEDIUMTEXT COMMENT '본문 정제 텍스트',
+            matched_stock VARCHAR(100) COMMENT '어떤 종목 쿼리로 걸렸는지',
+            pub_date      DATETIME,
+            crawled_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            processed     BOOLEAN DEFAULT FALSE COMMENT 'LLM 메타데이터 추출 완료 여부',
+            article_hash  CHAR(64), 
+            ADD UNIQUE KEY uq_article_hash (article_hash),
+            UNIQUE KEY uq_link (link)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='네이버 뉴스 원본 수집 테이블';"""
     }
 
     # 텍스트 리스트(딕셔너리 키/값)를 돌면서 공통 함수 호출
