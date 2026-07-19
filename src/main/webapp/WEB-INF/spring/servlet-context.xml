@@ -15,12 +15,12 @@
 		<mvc:interceptor>
 			<mvc:mapping path="/api/**" />
 			<!-- exclude-mappin에 선언된 api들은 interceptor를 타지 않아 토큰 체킹 안함	-->
-			<mvc:mapping path="/api/**" />
 			<mvc:exclude-mapping path="/api/login" />
 			<mvc:exclude-mapping path="/api/userLogin" />
 			<mvc:exclude-mapping path="/api/auth/refresh" />
 			<mvc:exclude-mapping path="/api/signinDup" />
 			<mvc:exclude-mapping path="/api/userSignup" />
+			<mvc:exclude-mapping path="/api/getKisToken" />
 			<mvc:exclude-mapping path="/login" />
 			<mvc:exclude-mapping path="/" />
 			<bean class="com.blackrabbit.common.util.JwtInterceptor" />
@@ -29,16 +29,23 @@
 		<!--	HttpSession 사용을 위한 인터셉터 설정 파일 추가	-->
 		<mvc:interceptor>
 			<mvc:mapping path="/api/**" />
+			<!-- exclude-mappin에 선언된 api들은 interceptor를 타지 않아 토큰 체킹 안함	-->
 			<mvc:exclude-mapping path="/api/login" />
 			<mvc:exclude-mapping path="/api/userLogin" />
 			<mvc:exclude-mapping path="/api/auth/refresh" />
 			<mvc:exclude-mapping path="/api/signinDup" />
 			<mvc:exclude-mapping path="/api/userSignup" />
+			<mvc:exclude-mapping path="/api/getKisToken" />
 			<mvc:exclude-mapping path="/login" />
 			<mvc:exclude-mapping path="/" />
 			<bean class="com.blackrabbit.common.util.SessionCheckInterceptor" />
 		</mvc:interceptor>
 	</mvc:interceptors>
+
+	<!-- properties 파일 읽기 -->
+	<context:property-placeholder
+			location="classpath:config/application.properties"
+			ignore-unresolvable="true"/>
 
 	<!-- 정적 리소스 정상 출력을 위한 설정 추가	-->
 	<context:component-scan

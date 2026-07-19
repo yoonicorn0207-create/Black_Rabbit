@@ -1,0 +1,156 @@
+body {
+    background-color: #050505;
+    color: #d1d4dc;
+    font-family: sans-serif;
+}
+
+.bg-panel {
+    background-color: #0a0e17;
+    border: 1px solid #1f2937;
+}
+
+.text-up {
+    color: #ef4444;
+}
+
+.text-down {
+    color: #3b82f6;
+}
+
+/* 차트 높이 강제 지정하여 렌더링 문제 해결 */
+#main-chart {
+    width: 100%;
+    height: 500px;
+}
+
+/* 스크롤바 커스텀 */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: #374151 #050505;
+}
+
+*::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+    background: #050505;
+    border-radius: 9999px;
+}
+
+*::-webkit-scrollbar-thumb {
+    background: #374151;
+    border-radius: 9999px;
+    transition: background 0.2s ease;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+    background: #4b5563;
+}
+
+*::-webkit-scrollbar-corner {
+    background: #050505;
+}
+
+/* 일본 주봉 active 클래스 추가 */
+.period-btn {
+    width: 60px;
+    background-color: #1f2937;
+    color: white;
+    transition: all 0.15s ease;
+}
+
+.period-btn:hover {
+    background-color: #374151;
+}
+
+.period-btn.active {
+    background: linear-gradient(135deg, #f7df1e, #d4b80f);
+    color: #1e293b;
+    border: 1px solid #f7df1e;
+    font-weight: 500;
+}
+
+.neon-price {
+    color: #ccff00; /* 형광 연두색 */
+    font-weight: bold;
+    text-shadow: 0 0 5px rgba(204, 255, 0, 0.5);
+}
+
+
+/* user info edit  모달 전용 */
+.input {
+    width: 100%;
+    padding: 12px 15px;
+
+    color: white;
+    font-size: .9rem;
+
+    background: var(--input-bg);
+    border: 1px solid rgba(255,255,255,.15);
+    border-radius: 8px;
+
+    box-sizing: border-box;
+}
+.input:focus {
+    outline: none;
+    border-color: var(--accent-yellow);
+}
+.input[read-only],
+.input:read-only{
+    background-color: rgba(255, 255, 255, 0.3)!important;
+    border: 1px solid rgba(255,255,255,.1)!important;
+}
+.btn-check {
+    height: 42px;
+    padding: 0 16px;
+
+    border: 1px solid rgba(255,255,255,.5);
+    border-radius: 8px;
+
+    background: transparent;
+    color: white;
+
+    white-space: nowrap;
+    cursor: pointer;
+
+    transition: .3s;
+}
+.btn-check:hover {
+    background: white;
+    color: black;
+}
+.val_check {
+    width: 100%;
+    min-height: 20px;
+
+    padding-left: 5px;
+    margin-bottom: 5px;
+
+    font-size: .75rem;
+    color: var(--text-red);
+
+    visibility: hidden;
+}
+.val_check.show {
+    visibility: visible;
+}
+.btn {
+    margin-top: 20px;
+    padding: 13px 48px;
+
+    border: none;
+    border-radius: 999px;
+
+    background: var(--accent-yellow);
+    color: black;
+
+    font-weight: bold;
+    cursor: pointer;
+
+    transition: .3s;
+}
+.btn:hover {
+    box-shadow: 0 0 15px var(--accent-yellow);
+}

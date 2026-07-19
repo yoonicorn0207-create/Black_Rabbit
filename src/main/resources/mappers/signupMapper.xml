@@ -16,7 +16,11 @@
 
   <!-- 회원가입 -->
   <insert id="createUser" parameterType="map">
-    INSERT INTO HC_user (username, email, password_hash, balance)
-    VALUES (#{username}, #{email}, #{password}, #{balance})
+    INSERT INTO HC_user (
+      username, email, password_hash, balance,
+      mock_account_no, encrypted_app_key, encrypted_app_secret)
+    VALUES (
+      #{username}, #{email}, #{password}, #{balance},
+    #{mockAccount}, #{appKey}, #{appSecret})
   </insert>
 </mapper>

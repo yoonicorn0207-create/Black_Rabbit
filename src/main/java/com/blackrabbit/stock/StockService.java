@@ -6,8 +6,8 @@ import java.util.Map;
 public interface StockService {
 
     /* 1. BlackRabbit 메인페이지 - WatchList (2026_0626에 추가) By.yoonicorn */
-    List<StockDTO> getPresent_StockList();
-
+    /* 페이지네이션+ 검색 기능 추가 260713 */
+    StockListResDTO getPresent_StockList(int page, int size, String keyword);
 
     /* 2. BlackRabbit 메인페이지 - 일별차트 (2026_0629) By.yoonicorn */
     List<StockDailyDTO> getDailyStockChartData(String code, String period);

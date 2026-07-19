@@ -1,26 +1,39 @@
 package com.blackrabbit.kis;
 
 public class KISTokenDTO {
-  private String kisAppKey;
-  private String kisSecretKey;
+  private String username;
+  private String appKey;
+  private String secretKey;
+  private String mockAccount;
 
   public KISTokenDTO(){};
-  public KISTokenDTO(String kisAppKey, String kisSecretKey){this.kisAppKey = kisAppKey; this.kisSecretKey = kisSecretKey;};
+  public KISTokenDTO(String username){ this.username = username;};
+  public KISTokenDTO(String appKey, String secretKey){this.appKey = appKey; this.secretKey = secretKey;};
+  public KISTokenDTO(String appKey, String secretKey, String mockAccount){this.appKey = appKey; this.secretKey = secretKey; this.mockAccount = mockAccount;};
 
   // getter/ setter
-  public String getKisAppKey() {
-    return kisAppKey;
+  public String getAppKey() {
+    return appKey;
   }
-
-  public void setKisAppKey(String kisAppKey) {
-    this.kisAppKey = kisAppKey;
+  public void setAppKey(String appKey) {
+    this.appKey = appKey;
   }
-
-  public String getKisSecretKey() {
-    return kisSecretKey;
+  public String getSecretKey() {
+    return secretKey;
   }
-
-  public void setKisSecretKey(String kisSecretKey) {
-    this.kisSecretKey = kisSecretKey;
+  public void setSecretKey(String secretKey) {
+    this.secretKey = secretKey;
+  }
+  public String getUsername() {
+    return username;
+  }
+  public void setUsername(String username) {
+    this.username = username;
+  }
+  public String getMockAccount() {
+    return mockAccount;
+  }
+  public void setMockAccount(String mockAccount) {
+    this.mockAccount = mockAccount;
   }
 }

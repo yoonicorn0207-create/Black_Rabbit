@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -14,12 +15,21 @@ public class StockServiceImpl implements StockService {
     private StockMapper stockMapper;
 
     /* 1. BlackRabbit 메인페이지 - WatchList  (2026_0626에 추가) */
+    // 무한스크롤+페이지네이션+검색 기능 추가 260713
     @Override
-    public List<StockDTO> getPresent_StockList() {
+    public StockListResDTO getPresent_StockList(int page, int size, String keyword) {
 
-        List<StockDTO> stock_List = stockMapper.getPresent_StockList();
+        int offset = page * size;
 
-        return stock_List;
+        Map<String, Object> params = new HashMap<>();
+        params.put("keyword", keyword);
+        params.put("size", size);
+        params.put("offset", offset);
+
+        List<StockDTO> list = stockMapper.getPresent_StockList(params);
+        int total = stockMapper.getPresent_StockListCount(params);
+
+        return new StockListResDTO(list, total);
     }//BlackRabbit 메인페이지 - WatchList
 
     /* 2. BlackRabbit 메인페이지 - 일별차트 (2026_0629) */

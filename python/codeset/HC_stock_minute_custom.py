@@ -242,7 +242,7 @@ def insert_stock_minute2_bulk(minute2_tuples):
 ## =========== 반복문 처리 =================
 TIMEOUT_MINUTES = 2500000  # 30분 크론 기준, 25분 안에 강제 종료
 
-def get_itemchartprice_data():
+def get_itemchartprice_data(targetTimes):
     """
     크론으로 작동되는 코드
     """
@@ -253,92 +253,89 @@ def get_itemchartprice_data():
     try:
 
         tickersList = getStockMstList() ## 오늘 상장한 종목 리스트 가져오기
-        target_time = getTargetTime() ## 호출할 분봉 데이터 시간 계산
         total_len = len(tickersList) ## 상장 종목 갯수
 
-        # targetTimes = [
-        #   "153000", "150000", "143000", "140000",
-        #   "133000", "130000", "123000", "120000",
-        #   "113000", "110000", "103000", "100000", "093000"]
-
-        print(f"📌 수집 시작 | 기준시각: {target_time} | 종목 수: {total_len}")
 
         ## 시간 단위로 호출되는 api이므로 종목을 기준으로 반복문 진행
         for idx, ticker in enumerate(tickersList, 1):
 
-            ## TIMEOUT_MINUTES 로직
-            elapsed = (time.time() - start_time) / 60
-            if elapsed >= TIMEOUT_MINUTES:
-                print(f"⏰ {TIMEOUT_MINUTES}분 초과로 강제 종료 (진행: {idx-1}/{total_len})")
-                break
+            for target_time in targetTimes :
 
-            arr = []
-            arr_meta = {}
-            success = False
-            retry_count = 0
+                print(f"📌 수집 시작 | 기준시각: {target_time} | 종목 수: {total_len}")
 
-            ## 최대 3번까지 시도하고 실패 시 다음 종목으로 이동
-            while not success and retry_count < 3:
-                try:
-                    limiter.wait()  # 고정 sleep 대신 레이트리미터
-                    res = inquire_time_itemchartprice(ticker, target_time) ## 분봉 호출 api
+                ## TIMEOUT_MINUTES 로직
+                elapsed = (time.time() - start_time) / 60
+                if elapsed >= TIMEOUT_MINUTES:
+                    print(f"⏰ {TIMEOUT_MINUTES}분 초과로 강제 종료 (진행: {idx-1}/{total_len})")
+                    break
 
-                    success = True
-                except Exception as api_e:
-                    error_msg = str(api_e)
+                arr = []
+                arr_meta = {}
+                success = False
+                retry_count = 0
 
-                    if "EGW00201" in error_msg or "초당 거래건수" in error_msg:
-                        retry_count += 1
-                        print(f"   ⚠️ [{ticker}] 초당 제한. 3초 대기 후 재시도... ({retry_count}/3)")
-                        time.sleep(3)
+                ## 최대 3번까지 시도하고 실패 시 다음 종목으로 이동
+                while not success and retry_count < 3:
+                    try:
+                        limiter.wait()  # 고정 sleep 대신 레이트리미터
+                        res = inquire_time_itemchartprice(ticker, target_time) ## 분봉 호출 api
 
-                    else:
-                        print(f"   ❌ [{ticker}] 에러: {api_e}")
-                        break
+                        success = True
+                    except Exception as api_e:
+                        error_msg = str(api_e)
 
-            if success and res:
-                res_list = res.get('output2', [])
-                b_date = ''
+                        if "EGW00201" in error_msg or "초당 거래건수" in error_msg:
+                            retry_count += 1
+                            print(f"   ⚠️ [{ticker}] 초당 제한. 3초 대기 후 재시도... ({retry_count}/3)")
+                            time.sleep(3)
+
+                        else:
+                            print(f"   ❌ [{ticker}] 에러: {api_e}")
+                            break
 
                 if success and res:
+                    res_list = res.get('output2', [])
+                    b_date = ''
 
-                    for row in res_list:
-                        b_date = f"{row['stck_bsop_date'][:4]}-{row['stck_bsop_date'][4:6]}-{row['stck_bsop_date'][6:]}"
-                        c_hour = f"{row['stck_cntg_hour'][:2]}:{row['stck_cntg_hour'][2:4]}:{row['stck_cntg_hour'][4:]}"
+                    if success and res:
 
-                        arr.append((
-                            ticker, b_date, c_hour, row['stck_oprc'],
-                            row['stck_hgpr'], row['stck_lwpr'], row['stck_prpr'],
-                            row['cntg_vol'], row['acml_tr_pbmn']
-                        ))
+                        for row in res_list:
+                            b_date = f"{row['stck_bsop_date'][:4]}-{row['stck_bsop_date'][4:6]}-{row['stck_bsop_date'][6:]}"
+                            c_hour = f"{row['stck_cntg_hour'][:2]}:{row['stck_cntg_hour'][2:4]}:{row['stck_cntg_hour'][4:]}"
 
-                    if target_time == '153000':
-                        out1 = res.get('output1', {})
+                            arr.append((
+                                ticker, b_date, c_hour, row['stck_oprc'],
+                                row['stck_hgpr'], row['stck_lwpr'], row['stck_prpr'],
+                                row['cntg_vol'], row['acml_tr_pbmn']
+                            ))
 
-                        # arr_meta에 적절한 값 넣기
-                        arr_meta = {
-                            'ticker': ticker,
-                            "stck_bsop_date": b_date,
-                            'stck_prpr': out1.get('stck_prpr', 0),
-                            'prdy_vrss': out1.get('prdy_vrss', 0),
-                            'prdy_vrss_sign': out1.get('prdy_vrss_sign', '0'),
-                            'prdy_ctrt': out1.get('prdy_ctrt', 0.0),
-                            'stck_prdy_clpr': out1.get('stck_prdy_clpr', 0),
-                            'acml_vol': out1.get('acml_vol', 0),
-                            'acml_tr_pbmn': out1.get('acml_tr_pbmn', 0),
-                            'hts_kor_isnm': out1.get('hts_kor_isnm', '알수없음')
-                        }
+                        if target_time == '153000':
+                            out1 = res.get('output1', {})
 
-            if arr:
-                try:
-                    if target_time == '153000':
-                        insert_stock_minute1(ticker, arr_meta)
+                            # arr_meta에 적절한 값 넣기
+                            arr_meta = {
+                                'ticker': ticker,
+                                "stck_bsop_date": b_date,
+                                'stck_prpr': out1.get('stck_prpr', 0),
+                                'prdy_vrss': out1.get('prdy_vrss', 0),
+                                'prdy_vrss_sign': out1.get('prdy_vrss_sign', '0'),
+                                'prdy_ctrt': out1.get('prdy_ctrt', 0.0),
+                                'stck_prdy_clpr': out1.get('stck_prdy_clpr', 0),
+                                'acml_vol': out1.get('acml_vol', 0),
+                                'acml_tr_pbmn': out1.get('acml_tr_pbmn', 0),
+                                'hts_kor_isnm': out1.get('hts_kor_isnm', '알수없음')
+                            }
 
-                    insert_stock_minute2_bulk(arr)
+                if arr:
+                    try:
+                        if target_time == '153000':
+                            insert_stock_minute1(ticker, arr_meta)
 
-                    print(f"[{idx-1}/{total_len}] {target_time} 완료")
-                except Exception as db_e:
-                    print(f"   ❌ [{ticker}] DB 적재 실패: {db_e}")
+                        insert_stock_minute2_bulk(arr)
+
+                        print(f"[{idx-1}/{total_len}] {target_time} 완료")
+                    except Exception as db_e:
+                        print(f"   ❌ [{ticker}] DB 적재 실패: {db_e}")
 
         elapsed_total = (time.time() - start_time)
         print(f"✅ 수집 완료 | 소요시간: {elapsed_total:.1f}초")
@@ -348,4 +345,9 @@ def get_itemchartprice_data():
 
 
 if __name__ == "__main__":
-    get_itemchartprice_data();
+    # targetTimes = [
+    #   "153000", "150000", "143000", "140000",
+    #   "133000", "130000", "123000", "120000",
+    #   "113000", "110000", "103000", "100000", "093000"]
+    targetTimes = ["120000", "123000"]
+    get_itemchartprice_data(targetTimes);

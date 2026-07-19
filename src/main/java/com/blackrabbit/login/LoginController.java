@@ -2,10 +2,13 @@ package com.blackrabbit.login;
 
 import com.blackrabbit.common.dto.ResultDTO;
 import com.blackrabbit.common.util.JwtProvider;
+import com.blackrabbit.kis.KISService;
+import com.blackrabbit.kis.KISTokenDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import java.util.HashMap;
 import java.util.Map;
@@ -13,12 +16,11 @@ import java.util.Map;
 @Controller
 public class LoginController {
 
-  @Autowired
-  LoginMapper loginMapper;
-  @Autowired
-  LoginService loginService;
-  @Autowired
-  JwtProvider jwtProvider;
+  @Autowired LoginMapper loginMapper;
+  @Autowired LoginService loginService;
+  @Autowired JwtProvider jwtProvider;
+  @Autowired KISService kisService;
+
 
 
   // 로그인 메인 페이지 호출
@@ -30,7 +32,20 @@ public class LoginController {
   @RequestMapping(value="/api/userLogin", method = RequestMethod.POST)
   @ResponseBody
   public ResultDTO userLogin(@RequestBody LoginDTO loginData){
-    return loginService.loginUser(loginData);
+
+    // 사용자 로그인 확인
+    ResultDTO loginResult = loginService.loginUser(loginData);
+
+    // 로그인 성공+ KIS api 사용
+    if (loginResult.getState() && loginData.getIsUseKisApi()) {
+      // 토큰 발행하기
+      ResultDTO tokenRes =   kisService.getKisToken(new KISTokenDTO(loginData.getUsername()));
+
+      loginResult.setFailMsg(tokenRes.getFailMsg());
+      loginResult.setState(tokenRes.getState());
+    }
+
+    return loginResult;
   }
 
 
@@ -45,17 +60,15 @@ public class LoginController {
 
   // 로그아웃= db에 저장된 refresh 토큰 삭제
   @PostMapping("/api/userLogout")
-  public void delRefreshToken(@RequestHeader("Authorization") String authHeader, HttpSession session){
-    // 세션 완전 삭제
+  public void delRefreshToken(@RequestHeader("Authorization") String authHeader, HttpServletRequest request){
+    HttpSession session = request.getSession(false); // 있으면 가져오고, 없으면 null (새로 안 만듦)
+
     if (session != null) {
       session.invalidate();
     }
 
-    // 1. 토큰에서 유저네임 추출 (JWT Provider 사용)
     String token = authHeader.substring(7);
     String username = jwtProvider.getUsernameFromToken(token);
-
-    // 2. DB에서 해당 유저의 Refresh Token 삭제
     loginService.logoutUser(username);
   }
 

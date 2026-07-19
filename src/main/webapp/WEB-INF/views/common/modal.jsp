@@ -8,6 +8,9 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* 공통 모달 스타일 */
+        #commonModal{
+            z-index: 100;
+        }
         #commonModal > div {
             background-color: #1a1f2e; /* 다크 모드 배경색 */
             border: 1px solid rgba(255, 255, 255, 0.1);
@@ -15,6 +18,7 @@
             padding: 2rem;
             border-radius: 1rem;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+
         }
 
         /* 확인 버튼 스타일 */

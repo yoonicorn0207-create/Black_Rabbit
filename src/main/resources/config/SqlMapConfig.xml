@@ -32,6 +32,19 @@
         <typeAlias alias="marketIndexDTO"
                    type="com.blackrabbit.stock.MarketIndexDTO"/>
 
+        <typeAlias alias="kisTokenResDTO"
+                   type="com.blackrabbit.kis.KISTokenResDTO"/>
+
+        <typeAlias alias="memberDTO"
+                   type="com.blackrabbit.member.MemberDTO"/>
+
+        <typeAlias alias="kisOrderDTO"
+                   type="com.blackrabbit.kis.KISOrderDTO"/>
+
+        <typeAlias alias="StockListResDTO"
+                   type="com.blackrabbit.stock.StockListResDTO"/>
+
+
     </typeAliases>
 
 
