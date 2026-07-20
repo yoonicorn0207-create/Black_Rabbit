@@ -48,8 +48,9 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('mouseup', () => {
     if (isDragging) {
       isDragging = false;
-      fab.style.cursor = 'grab';
-      fab.classList.remove('chatbot-fab-dragging');
+      // fab.style.cursor = 'grab';
+      // fab.classList.remove('chatbot-fab-dragging');
+      // savePosition();
       savePosition();
     }
   });
@@ -60,34 +61,178 @@ document.addEventListener('DOMContentLoaded', () => {
     toggleChatWindow();
   });
 
+  // ---------------- 채팅창 드래그 및, 채팅 버튼 위치 기준 채팅창 오픈 ----------------
+  const chatHeader = document.getElementById("chatbot-header");
+
+  let draggingWindow = false;
+  let winOffsetX = 0;
+  let winOffsetY = 0;
+
+  chatHeader.addEventListener("mousedown", (e) => {
+
+    draggingWindow = true;
+
+    const rect = chatWindow.getBoundingClientRect();
+
+    winOffsetX = e.clientX - rect.left;
+    winOffsetY = e.clientY - rect.top;
+
+    e.preventDefault();
+  });
+
+  document.addEventListener("mousemove", (e) => {
+
+    if (!draggingWindow) return;
+
+    let left = e.clientX - winOffsetX;
+    let top = e.clientY - winOffsetY;
+
+    left = Math.max(
+      0,
+      Math.min(left, window.innerWidth - chatWindow.offsetWidth)
+    );
+
+    top = Math.max(
+      0,
+      Math.min(top, window.innerHeight - chatWindow.offsetHeight)
+    );
+
+    chatWindow.style.left = left + "px";
+    chatWindow.style.top = top + "px";
+    chatWindow.style.right = "auto";
+    chatWindow.style.bottom = "auto";
+  });
+
+  document.addEventListener("mouseup", () => {
+    draggingWindow = false;
+  });
+
+  // ---------------- 화면을 줄여도 버튼이 화면 밖으로 사라지지 않게 ----------------
+  window.addEventListener("resize", () => {
+
+    const rect = fab.getBoundingClientRect();
+
+    let left = rect.left;
+    let top = rect.top;
+
+    left = Math.max(
+      10,
+      Math.min(left, window.innerWidth - fab.offsetWidth - 10)
+    );
+
+    top = Math.max(
+      10,
+      Math.min(top, window.innerHeight - fab.offsetHeight - 10)
+    );
+
+    fab.style.left = left + "px";
+    fab.style.top = top + "px";
+    fab.style.right = "auto";   // 추가
+    fab.style.bottom = "auto";  // 추가
+
+    if (!chatWindow.classList.contains("hidden")) {
+      positionChatWindow();
+    }
+  });
+
+  function saveChatWindowPosition() {
+    const rect = chatWindow.getBoundingClientRect();
+
+    localStorage.setItem(
+      "chatbotWindowPosition",
+      JSON.stringify({
+        left: rect.left,
+        top: rect.top
+      })
+    );
+  }
+
+  // ---------------- 채팅창 위치 복원 ----------------
+  function restoreChatWindowPosition() {
+
+    const saved = localStorage.getItem("chatbotWindowPosition");
+
+    if (!saved) return;
+
+    const {left, top} = JSON.parse(saved);
+
+    chatWindow.style.left = left + "px";
+    chatWindow.style.top = top + "px";
+    chatWindow.style.right = "auto";
+    chatWindow.style.bottom = "auto";
+  }
+
   // ---------------- 위치 저장/복원 (localStorage) ----------------
   function savePosition() {
     const rect = fab.getBoundingClientRect();
-    localStorage.setItem('chatbotFabPosition', JSON.stringify({
-      left: rect.left,
-      top: rect.top
-    }));
+
+    localStorage.setItem(
+      "chatbotFabPosition",
+      JSON.stringify({
+        leftRatio: rect.left / window.innerWidth,
+        topRatio: rect.top / window.innerHeight
+      })
+    );
   }
 
   function restorePosition() {
-    const saved = localStorage.getItem('chatbotFabPosition');
+
+    const saved = localStorage.getItem("chatbotFabPosition");
+
     if (!saved) return;
-    try {
-      const { left, top } = JSON.parse(saved);
-      fab.style.left = `${left}px`;
-      fab.style.top = `${top}px`;
-      fab.style.right = 'auto';
-      fab.style.bottom = 'auto';
-    } catch (e) {
-      console.error('챗봇 위치 복원 실패:', e);
-    }
+
+    const { leftRatio, topRatio } = JSON.parse(saved);
+
+    let left = leftRatio * window.innerWidth;
+    let top = topRatio * window.innerHeight;
+
+    // 화면 밖 방지
+    left = Math.min(left, window.innerWidth - fab.offsetWidth - 10);
+    top = Math.min(top, window.innerHeight - fab.offsetHeight - 10);
+
+    left = Math.max(10, left);
+    top = Math.max(10, top);
+
+    fab.style.left = left + "px";
+    fab.style.top = top + "px";
+    fab.style.right = "auto";
+    fab.style.bottom = "auto";
   }
+
   restorePosition();
+
+  // ---------------- 채팅창 열림 위치 설정 ----------------
+  function positionChatWindow() {
+    const fabRect = fab.getBoundingClientRect();
+
+    const margin = 12;
+
+    let left = fabRect.left + fab.offsetWidth - chatWindow.offsetWidth;
+    let top = fabRect.top - chatWindow.offsetHeight - margin;
+
+    // 화면 경계 처리
+    left = Math.max(
+      10,
+      Math.min(left, window.innerWidth - chatWindow.offsetWidth - 10)
+    );
+
+    top = Math.max(
+      10,
+      Math.min(top, window.innerHeight - chatWindow.offsetHeight - 10)
+    );
+
+    chatWindow.style.left = `${left}px`;
+    chatWindow.style.top = `${top}px`;
+    chatWindow.style.right = "auto";
+    chatWindow.style.bottom = "auto";
+  }
 
   // ---------------- 채팅창 토글 ----------------
   function toggleChatWindow() {
     chatWindow.classList.toggle('hidden');
+
     if (!chatWindow.classList.contains('hidden')) {
+      positionChatWindow();
       input.focus();
     }
   }

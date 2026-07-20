@@ -1,7 +1,20 @@
 /* 메인 컬러 변수화 */
 :root {
-    --chatbot-glow-rgb: 163, 230, 53; /* 네온 라임 */
+    --chatbot-glow-rgb: 163, 230, 53;
+    --chatbot-right: calc(50% - 250px);
+    --chatbot-bottom: 24px;
 }
+
+#chatbot-fab{
+    position:fixed;
+    right:24px;
+    bottom:24px;
+}
+
+#chatbot-window{
+    position:fixed;
+}
+
 /* 글래스모피즘 베이스 */
 .chatbot-fab-glass {
     background: rgba(var(--chatbot-glow-rgb), 0.15);

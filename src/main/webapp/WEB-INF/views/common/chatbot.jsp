@@ -3,8 +3,7 @@
 
 <!-- 드래그 가능한 챗봇 플로팅 버튼 -->
 <div id="chatbot-fab"
-     class="fixed z-[9998] w-16 h-16 rounded-full cursor-grab flex items-center justify-center chatbot-fab-glow"
-     style="right: 24px; bottom: 24px;">
+     class="fixed z-[9998] w-16 h-16 rounded-full cursor-grab flex items-center justify-center chatbot-fab-glow">
     <div class="chatbot-fab-glass w-full h-full rounded-full flex items-center justify-center">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#a3e635" stroke-width="0.5">
             <path d="M12 2C6.48 2 2 6.03 2 11c0 2.42 1.09 4.6 2.86 6.19-.1.98-.4 2.32-1.11 3.6a.5.5 0 0 0 .58.72c1.9-.5 3.36-1.27 4.24-1.8.99.28 2.05.29 3.43.29 5.52 0 10-4.03 10-9s-4.48-9-10-9z"
@@ -15,11 +14,10 @@
 
 <!-- 챗봇 채팅창 -->
 <div id="chatbot-window"
-     class="hidden fixed z-[9999] w-96 h-[520px] bg-white border border-gray-200 rounded-xl flex flex-col overflow-hidden"
-     style="right: 24px; bottom: 96px;">
+     class="hidden fixed z-[9999] w-96 h-[520px] bg-white border border-gray-200 rounded-xl flex flex-col overflow-hidden">
 
     <!-- 헤더 -->
-    <div class="bg-gray-50 px-4 py-3 flex items-center justify-between border-b border-gray-200">
+    <div id="chatbot-header" class="bg-gray-50 px-4 py-3 flex items-center justify-between border-b border-gray-200">
         <span class="text-sm font-bold text-gray-800">BlackRabbit AI 어시스턴트</span>
         <button id="chatbot-close" class="text-gray-400 hover:text-gray-700 text-lg leading-none">&times;</button>
     </div>
