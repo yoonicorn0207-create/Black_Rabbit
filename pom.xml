@@ -135,6 +135,20 @@
             <scope>runtime</scope>
         </dependency>
 
+
+        <!-- 2026.0716 Swagger UI위해 추가 -->
+        <dependency>
+            <groupId>io.springfox</groupId>
+            <artifactId>springfox-swagger2</artifactId>
+            <version>3.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>io.springfox</groupId>
+            <artifactId>springfox-swagger-ui</artifactId>
+            <version>3.0.0</version>
+        </dependency>
+
+
         <!-- @PostConstruct 어노테이션 사용을 위한 의존성 추가 -->
         <dependency>
             <groupId>javax.annotation</groupId>
