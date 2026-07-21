@@ -4,6 +4,7 @@ import time
 import sys, os
 import pandas as pd
 import hashlib
+import trafilatura
 
 from dotenv import load_dotenv
 from bs4 import BeautifulSoup
@@ -66,8 +67,12 @@ def search_naver_news(query, display=100, start=1, sort="date"):
 
 ## ======================= 최근 24시간 내 작성 기사만 크롤링 하기 위해 필터 로직 =======================
 def is_recent(pub_date_str, hours=24):
-    pub_date = datetime.strptime(pub_date_str, "%a, %d %b %Y %H:%M:%S %z")
-    return pub_date >= datetime.now(timezone.utc).astimezone() - timedelta(hours=hours)
+    try:
+        pub_date = datetime.strptime(pub_date_str, "%a, %d %b %Y %H:%M:%S %z")
+        return pub_date >= datetime.now(timezone.utc).astimezone() - timedelta(hours=hours)
+
+    except (ValueError, TypeError):
+        return False  # 파싱 안 되는 기사는 그냥 최신 아닌 걸로 취급하고 스킵
 
 
 ## ============================ 금융과 관련된 키워드 필터링 ============================
@@ -75,7 +80,7 @@ def is_finance_related(title, description):
     # 이부분이 없으면 두산/ LG 등 야구팀이나 가전제품 기사까지 걸림
     FINANCE_KEYWORDS = ["주가", "실적", "매출", "영업이익", "목표주가", "증권", "코스피", "코스닥", "투자의견", "공시"]
 
-    text = title + description
+    text = (title or "") + (description or "")
     return any(kw in text for kw in FINANCE_KEYWORDS)
 
 
@@ -91,22 +96,34 @@ def collect_news():
     all_items = []
 
     for name in WATCHLIST:
-        items = search_naver_news(name, display=30, sort="date")
+        try:
+            items = search_naver_news(name, display=30, sort="date")
+
+        except Exception as e:
+            print(f"[{name}] 뉴스 검색 실패: {e}")
+            continue
+
         for it in items:
-            key = it["link"]
-            if key in seen:
+            try:
+                key = it["link"]
+                if key in seen:
+                    continue
+
+                if not is_finance_related(it.get("title"), it.get("description")):
+                    continue  # <-- 여기서 야구/일반뉴스 등 걸러냄
+
+                if not is_recent(it.get("pubDate")):
+                    continue  # <-- 작성된지 24시간 내의 기사 필터링
+
+                seen.add(key)
+                it["title"] = clean_title(it["title"])
+                it["matched_stock"] = name
+                all_items.append(it)
+
+            except KeyError as e:
+                print(f"    [{name}] 기사 항목에 필수 키 누락: {e}")
                 continue
 
-            if not is_finance_related(it["title"], it["description"]):
-                continue  # <-- 여기서 야구/일반뉴스 등 걸러냄
-
-            if not is_recent(it["pubDate"]):
-                continue  # <-- 작성된지 24시간 내의 기사 필터링
-
-            seen.add(key)
-            it["title"] = clean_title(it["title"])
-            it["matched_stock"] = name
-            all_items.append(it)
         time.sleep(0.2)
     return all_items
 
@@ -127,55 +144,99 @@ def clean_body(text):
 
 
 def fetch_body(url):
-    res = requests.get(url, headers=HEADERS, timeout=5)
+    try:
+        res = requests.get(url, headers=HEADERS, timeout=5)
+        res.raise_for_status()
+
+    except requests.RequestException as e:
+        print(f"    본문 요청 실패: {e}")
+        return None, None
+
     res.encoding = "utf-8"
     soup = BeautifulSoup(res.text, "html.parser")
+
+    # 언론사명 추출 (og:site_name 메타태그 기준, 없으면 로고 alt 텍스트로 fallback)
+    source = None
+    og_site = soup.select_one('meta[property="og:site_name"]')
+    if og_site and og_site.get("content"):
+        source = og_site["content"]
+    else:
+        logo = soup.select_one(".media_end_head_top_logo img")
+        if logo and logo.get("alt"):
+            source = logo["alt"]
+
     body = soup.select_one("#dic_area") or soup.select_one("#newsct_article")
     if not body:
-        return None
-    # 기사 안 이미지 캡션, 관련기사 박스 제거
+        return None, source  # body 없어도 source는 반환
+
     for tag in body.select(".end_photo_org, .ad_wrap, .vod_player_wrap"):
         tag.decompose()
     text = body.get_text("\n", strip=True)
-    text = re.sub(r"\S+@\S+\.(com|co\.kr|net)", "", text)  # 기자 이메일
+    text = re.sub(r"\S+@\S+\.(com|co\.kr|net)", "", text)
     text = re.sub(r"\n{2,}", "\n", text)
-    return clean_body(text.strip())
+    return clean_body(text.strip()), source
+
+
+
+## ============================ 중복되는 뉴스는 크롤링에서 제외 ============================
+def get_existing_links():
+    rows = queryRows("SELECT link FROM HC_news_raw", "기존 링크 조회 실패")
+    return {row["link"] for row in rows}
+
+
+
+## ============================ 범용 본분 추출 라이브러리 사용 로직 ============================
+## 본문 영역 셀렉터 없이 휴리스틱으로 자동 감지하여 추출- 다양한 언론사 도메인 하나하나 셀렉터 작성 필요 없음
+def fetch_body_generic(url):
+    downloaded = trafilatura.fetch_url(url)
+    if not downloaded:
+        return None, None
+
+    text = trafilatura.extract(downloaded, include_comments=False, include_tables=False)
+    meta = trafilatura.extract_metadata(downloaded)
+    source = meta.sitename if meta else None
+    return text, source
+
 
 
 ## ============================ 네이버 api 호출하여 뉴스 받아오기 ============================
 def collect_news_with_body():
     items = collect_news()
+    existing = get_existing_links()
     total = len(items)
     results = []
-    skipped_domains = {}
+    already_saved = 0
+    body_fetch_failed = 0
+    generic_used = 0
 
     for idx, it in enumerate(items, start=1):
+        if it["link"] in existing:
+            already_saved += 1
+            continue
+
         link = it["link"]
         domain = urlparse(link).netloc
 
         print(f"[{idx}/{total}] {it['matched_stock']} - {it['title'][:30]}...")
 
-        # n.news.naver.com 계열만 우선 처리 (셀렉터가 고정이라 안전)
-        if "naver.com" not in domain:
-            skipped_domains[domain] = skipped_domains.get(domain, 0) + 1
-            print(f"    -> 스킵 (도메인: {domain})")
-            continue
+        if "naver.com" in domain:
+            body, source = fetch_body(link)          # 기존 네이버뉴스 전용 셀렉터
+        else:
+            body, source = fetch_body_generic(link)   # 그 외는 범용 추출
+            generic_used += 1
 
-        body = fetch_body(link)
         if not body:
-            print("    -> 본문 파싱 실패")
+            body_fetch_failed += 1
+            print(f"    -> 본문 파싱 실패 (link: {link})")
             continue
 
         it["body"] = body
+        it["source"] = source
         results.append(it)
         print(f"    -> 본문 확보 ({len(body)}자)")
         time.sleep(0.2)
 
-    print(f"\n본문 확보: {len(results)}건 / 전체 {total}건")
-    if skipped_domains:
-        print("스킵된 도메인 (언론사 원문 직행, 아직 파서 미대응):")
-        for domain, count in sorted(skipped_domains.items(), key=lambda x: -x[1]):
-            print(f"  {domain}: {count}건")
+    print(f"\n신규 본문 확보: {len(results)}건 / 이미 저장: {already_saved}건 / 본문파싱실패: {body_fetch_failed}건 / 범용파서 사용: {generic_used}건 / 전체: {total}건")
 
     return results
 
@@ -195,18 +256,24 @@ def parse_pub_date(pub_date_str):
 
 
 def save_news_to_db(news_items):
+    if not news_items:
+        print("저장할 신규 뉴스 없음")
+        return
+
     sql = """
-        INSERT INTO HC_news_raw (link, originallink, title, description, body, matched_stock, pub_date, article_hash)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        INSERT INTO HC_news_raw (link, originallink, title, description, body, matched_stock, pub_date, article_hash, source)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         ON DUPLICATE KEY UPDATE
             body = VALUES(body),
-            title = VALUES(title)
+            title = VALUES(title),
+            source = VALUES(source),
+            pub_date = VALUES(pub_date)
     """
     data = [
         (
             it["link"], it.get("originallink"), it["title"], it.get("description"),
             it.get("body"), it["matched_stock"], parse_pub_date(it.get("pubDate")),
-            make_article_hash(it["title"], it.get("body"))
+            make_article_hash(it["title"], it.get("body")), it.get("source")
         )
         for it in news_items
     ]
