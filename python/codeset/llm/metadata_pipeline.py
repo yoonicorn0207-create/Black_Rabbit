@@ -8,6 +8,7 @@ from datetime import datetime
 from pydantic import BaseModel, ValidationError
 from typing import List
 from difflib import get_close_matches
+from dotenv import load_dotenv
 
 CODESET_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # .../codeset
 if CODESET_DIR not in sys.path:
@@ -98,7 +99,8 @@ def get_all_stocks_cached():
 ## ======================= DB에서 미처리 기사 가져오기 =======================
 def get_unprocessed_articles(limit=None):
     try:
-        sql = "SELECT id, title, body FROM HC_news_raw WHERE processed = FALSE AND body IS NOT NULL"
+        sql = """SELECT id, title, body FROM HC_news_raw
+            WHERE processed = FALSE AND body IS NOT NULL AND metadata_attempts < 3"""
 
         if limit:
             sql += f" LIMIT {int(limit)}"
@@ -142,7 +144,7 @@ def extract_metadata(title, body, max_retry=2):
             metadata = ArticleMetadata(**data)
 
             if not is_metadata_clean(metadata):
-                print(f"    [재시도 {attempt + 1}/{max_retry}] 언어 오염 감지, 재시도")
+                print(f"    [재시도 {attempt + 1}/{max_retry+1}] 언어 오염 감지, 재시도")
                 continue
 
             return metadata
@@ -248,6 +250,10 @@ def run_pipeline(limit=None):
             metadata = extract_metadata(article["title"], article["body"])
             if metadata is None:
                 print(f"    -> 추출 실패, 스킵 ({time.time() - article_start:.1f}초)")
+                patchSingleRow(
+                        "UPDATE HC_news_raw SET metadata_attempts = metadata_attempts + 1 WHERE id = %s",
+                        "실패 카운트 갱신 실패", (article["id"],)
+                )
                 failed += 1
                 continue
 

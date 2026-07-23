@@ -253,6 +253,31 @@ document.addEventListener('DOMContentLoaded', () => {
     return bubble;
   }
 
+  // ---------------- 띄어쓰기 파싱 ----------------
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.innerText = text;
+    return div.innerHTML;  // <, >, & 등을 안전하게 이스케이프
+  }
+
+  // ---------------- 출처 url에 하이퍼링크 삽입 ----------------
+  function linkify(text) {
+    const escaped = escapeHtml(text);          // 1. 특수문자 이스케이프 (안전 + 정확성)
+    const withBreaks = escaped.replace(/\n/g, '<br>');  // 2. 줄바꿈을 <br>로 명시 변환
+    const urlRegex = /(https?:\/\/[^\s)]+)/g;
+    return withBreaks.replace(urlRegex, url => `<a href="${url}" target="_blank" class="underline text-blue-600">${url}</a>`);
+  }
+
+  // ---------------- 세션 구분용 함수 ----------------
+  function getSessionId() {
+    let id = localStorage.getItem('chatSessionId');
+    if (!id) {
+      id = crypto.randomUUID();
+      localStorage.setItem('chatSessionId', id);
+    }
+    return id;
+  }
+
   async function sendMessage() {
     const text = input.value.trim();
     if (!text) return;
@@ -260,32 +285,67 @@ document.addEventListener('DOMContentLoaded', () => {
     appendMessage(text, true);
     input.value = '';
 
-    const loadingBubble = appendMessage('답변을 생성하는 중...');
+    const botBubble = appendMessage('...');
+
+    // 버튼 로딩 상태 시작
+    sendBtn.disabled = true;
+    sendBtn.classList.add('chatbot-send-loading');
+    const originalBtnText = sendBtn.innerText;
+    sendBtn.innerText = '';
 
     try {
-      const response = await fetch('/api/chatbot/ask', {
+      const response = await fetch('/api/chat/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text }),
-        silent: true // 전체 화면 로딩창은 안 띄움 (채팅 버블 자체가 로딩 표시)
+        body: JSON.stringify({ message: text, sessionId: getSessionId() }),
+        silent: true
       });
-      const result = await response.json();
 
-      loadingBubble.innerText = result.answer || "답변을 가져오지 못했습니다.";
+      if (!response.ok) {
+        botBubble.innerText = "답변을 가져오지 못했습니다. 잠시 후 다시 시도해주세요.";
+        return;
+      }
 
-      // 출처 표기 (있으면 추가)
-      if (result.sources && result.sources.length > 0) {
-        const sourceDiv = document.createElement('div');
-        sourceDiv.className = "text-[10px] text-gray-500 mt-1";
-        sourceDiv.innerHTML = "출처: " + result.sources.map(s =>
-          `<a href="${s.url}" target="_blank" class="underline hover:text-gray-300">${s.title}</a>`
-        ).join(", ");
-        messages.appendChild(sourceDiv);
-        messages.scrollTop = messages.scrollHeight;
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let firstChunk = true;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n\n').filter(l => l.startsWith('data:'));
+
+        for (const line of lines) {
+          const data = line.replace(/^data: ?/, '');
+          if (data === '[DONE]') {
+            botBubble.innerHTML = linkify(botBubble.innerText);  // 스트림 종료 시 링크 변환
+            return;
+          }
+
+          if (firstChunk) {
+            botBubble.innerText = '';
+            firstChunk = false;
+          }
+          botBubble.innerText += data;   // 스트리밍 중엔 순수 텍스트로 이어붙임
+          messages.scrollTop = messages.scrollHeight;
+        }
+      }
+
+      if (firstChunk) {
+        botBubble.innerText = "답변을 가져오지 못했습니다.";
+      } else {
+        botBubble.innerHTML = linkify(botBubble.innerText);  // 정상 종료(done)로 루프 빠져나온 경우도 처리
       }
     } catch (error) {
-      loadingBubble.innerText = "오류가 발생했습니다. 잠시 후 다시 시도해주세요.";
+      botBubble.innerText = "오류가 발생했습니다. 잠시 후 다시 시도해주세요.";
       console.error('챗봇 응답 실패:', error);
+    } finally {
+      // 버튼 로딩 상태 종료 (성공/실패/무관하게 항상 실행)
+      sendBtn.disabled = false;
+      sendBtn.classList.remove('chatbot-send-loading');
+      sendBtn.innerText = originalBtnText;
     }
   }
 

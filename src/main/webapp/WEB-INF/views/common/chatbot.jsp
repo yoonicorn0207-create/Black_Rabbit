@@ -24,9 +24,7 @@
 
     <!-- 메시지 영역 -->
     <div id="chatbot-messages" class="flex-1 overflow-y-auto p-3 space-y-3 text-sm bg-white">
-        <div class="chatbot-bubble-bot px-3 py-2 max-w-[75%]">
-            안녕하세요! 오늘 매수하기 좋은 종목을 추천해드리거나, 궁금한 종목에 대해 물어보세요.
-        </div>
+        <div class="chatbot-bubble-bot px-3 py-2 max-w-[75%]">안녕하세요! 오늘 매수하기 좋은 종목을 추천해드리거나, 궁금한 종목에 대해 물어보세요.</div>
     </div>
 
     <!-- 입력 영역 -->
