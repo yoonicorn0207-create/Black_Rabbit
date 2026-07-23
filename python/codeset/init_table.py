@@ -224,6 +224,7 @@ def initialize_all_tables():
             pub_date      DATETIME,
             crawled_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             processed     BOOLEAN DEFAULT FALSE COMMENT 'LLM 메타데이터 추출 완료 여부',
+            metadata_attempts  INT DEFAULT 0 COMMENT 'LLM 메타데이터 추출 실패 횟수',
             article_hash  CHAR(64), 
             ADD UNIQUE KEY uq_article_hash (article_hash),
             UNIQUE KEY uq_link (link)
