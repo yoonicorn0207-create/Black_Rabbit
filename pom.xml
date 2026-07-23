@@ -162,6 +162,18 @@
             <artifactId>jackson-datatype-jsr310</artifactId>
             <version>2.15.2</version>
         </dependency>
+
+        <!-- FastAPI SSE 스트림 중계를 위한 webClient 의존성 추가 -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-webflux</artifactId>
+            <version>${org.springframework-version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.projectreactor.netty</groupId>
+            <artifactId>reactor-netty</artifactId>
+            <version>1.0.6</version>
+        </dependency>
     </dependencies>
 
     <build>

@@ -44,6 +44,9 @@
         <typeAlias alias="StockListResDTO"
                    type="com.blackrabbit.stock.StockListResDTO"/>
 
+        <typeAlias alias="chatReqDTO"
+                   type="com.blackrabbit.chatbot.ChatReqDTO"/>
+
 
     </typeAliases>
 
