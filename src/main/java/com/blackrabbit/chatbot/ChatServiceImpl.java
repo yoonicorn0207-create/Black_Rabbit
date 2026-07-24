@@ -1,5 +1,6 @@
 package com.blackrabbit.chatbot;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.http.HttpMethod;
@@ -19,7 +20,8 @@ public class ChatServiceImpl implements ChatService {
   @Resource
   private WebClient webClient;
 
-  private static final String FASTAPI_URL = "http://localhost:8000/chat";
+  @Value("${fastapi.chat.url}")
+  private String fastApiUrl;
 
   public void streamChat(String sessionId, String message, SseEmitter emitter) {
     Map<String, String> body = new HashMap<>();
@@ -27,7 +29,7 @@ public class ChatServiceImpl implements ChatService {
     body.put("message", message);
 
     webClient.method(HttpMethod.POST)
-        .uri(FASTAPI_URL)
+        .uri(fastApiUrl)
         .contentType(MediaType.APPLICATION_JSON)
         .accept(MediaType.valueOf("text/event-stream"))
         .bodyValue(body)
