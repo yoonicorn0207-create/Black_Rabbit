@@ -22,6 +22,7 @@ const chart = new ApexCharts(document.querySelector("#main-chart"), {
     {name: '60', type: 'line', data: []},
     {name: '120', type: 'line', data: []}
   ],
+  colors: ['#FFFFFF', '#FFD700', '#FF4500', '#00FF00', '#00BFFF'], // 이평선 범례 색상 지정 추가
   chart: {
     type: 'candlestick',
     height: '100%',
@@ -302,7 +303,7 @@ async function fetchChartData(stockCode, period, opts = {}) {
 
     // 종목마다 차트 금액 표시선 변경되도록 updateOption 추가
     chart.updateOptions({
-      series: [{data: formattedData}],
+      // series: [{data: formattedData}],
       yaxis: {
         // 기존 스타일 유지
         labels: {
@@ -544,7 +545,7 @@ async function updateMarketIndices(opts = {}) {
     const latest = Array.isArray(data) ? data[0] : data;
 
     if (latest) {
-      const indexContainer = document.querySelector('.flex.gap-4.text-sm.text-gray-400');
+      const indexContainer = document.getElementById('market-index-container');
       indexContainer.innerHTML = `  
 			<p>KOSPI <span class="text-green-400 font-mono">${latest.kospi.toLocaleString()}</span></p>  
 			<p>KOSDAQ <span class="text-red-500 font-mono">${latest.kosdaq.toLocaleString()}</span></p>  
@@ -639,5 +640,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   // 5초마다 데이터 갱신
   setInterval(() => refreshWatchlist({ silent: true }), 50000);
   //3분마다 (KOSPI & KOSDAQ)지수로드
+  await updateMarketIndices({ silent: true });
   setInterval(() => updateMarketIndices({ silent: true }), 180000);
 });
