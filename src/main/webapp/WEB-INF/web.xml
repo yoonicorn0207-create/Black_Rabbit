@@ -16,6 +16,7 @@
 			<param-value>/WEB-INF/spring/servlet-context.xml</param-value>
 		</init-param>
 		<load-on-startup>1</load-on-startup>
+		<async-supported>true</async-supported>
 	</servlet>
 
 	<servlet-mapping>
@@ -38,10 +39,31 @@
 	</session-config>
 
 
+	<!--CharacterEncodingFilter: llm이 채팅 생성 시 인코딩 UTF-8강제 지정 -->
+<!--	<filter>-->
+<!--		<filter-name>encodingFilter</filter-name>-->
+<!--		<filter-class>org.springframework.web.filter.CharacterEncodingFilter</filter-class>-->
+<!--		<init-param>-->
+<!--			<param-name>encoding</param-name>-->
+<!--			<param-value>UTF-8</param-value>-->
+<!--		</init-param>-->
+<!--		<init-param>-->
+<!--			<param-name>forceEncoding</param-name>-->
+<!--			<param-value>true</param-value>-->
+<!--		</init-param>-->
+<!--		<async-supported>true</async-supported>-->
+<!--	</filter>-->
+<!--	<filter-mapping>-->
+<!--		<filter-name>encodingFilter</filter-name>-->
+<!--		<url-pattern>/*</url-pattern>-->
+<!--	</filter-mapping>-->
+
+
 	<!-- 필터: /* 모든 라우터 경로에서 필터 코드를 태우겠다 -->
 	<filter>
 		<filter-name>AuthFilter</filter-name>
 		<filter-class>com.blackrabbit.common.util.AuthFilter</filter-class>
+		<async-supported>true</async-supported>
 	</filter>
 	<filter-mapping>
 		<filter-name>AuthFilter</filter-name>

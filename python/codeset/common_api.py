@@ -3,7 +3,7 @@ import requests
 import json
 from dotenv import load_dotenv
 
-from database import patchSingleRow
+from database import patchSingleRow, queryRows
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 load_dotenv(dotenv_path=os.path.join(BASE_DIR, "../dataset/config/.env"), override=True)
@@ -41,3 +41,52 @@ def getKisToken():
         raise Exception(f"토큰 발급 실패: {response.text}")
   except Exception as e:
      print(f"토큰 발급 api 호출 중 error 발생: {e}")
+
+
+## =========== 종목 리스트 호출  =================
+def getStockMasterList():
+  try:
+    sql = """
+    SELECT stock_name
+    FROM HC_stock_master
+    WHERE 1=1
+      AND status = "ACTIVE"
+    """
+
+    rows = queryRows(sql, "상장 종목 리스트 조회 충 에러 발생")
+
+    stockMasterList = [row['stock_name'] for row in rows]
+
+    return stockMasterList
+  except Exception as e:
+    print(e)
+    return []
+
+
+
+##  =========== 키워드 조건에 만족하는 종목 리스트 호출  =================
+## =========== 섹터/업종 키워드 기반 워치리스트 조회  =================
+def getWatchlistByKeywords(keywords=None):
+    if keywords is None:
+        keywords = ["반도체", "전자부품", "정밀기기"]
+
+    try:
+        conditions = " OR ".join(["industry LIKE %s"] * len(keywords))
+        sql = f"""
+        SELECT stock_name
+        FROM HC_stock_master
+        WHERE 1=1
+          AND status = "ACTIVE"
+          AND sector IS NOT NULL
+          AND ({conditions})
+        """
+
+        params = tuple(f"%{k}%" for k in keywords)
+        rows = queryRows(sql, "워치리스트 조회 중 에러 발생", params)
+
+        watchlist = [row['stock_name'] for row in rows]
+
+        return watchlist
+    except Exception as e:
+        print(e)
+        return []

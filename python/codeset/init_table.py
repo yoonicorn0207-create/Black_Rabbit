@@ -122,6 +122,8 @@ def initialize_all_tables():
         "HC_stock_master": """
             CREATE TABLE IF NOT EXISTS HC_stock_master (
                 id            INT AUTO_INCREMENT PRIMARY KEY,
+                sector        VARCHAR(100) NULL,
+                industry      VARCHAR(300) NULL,
                 ticker        VARCHAR(10) NOT NULL UNIQUE,
                 stock_name    VARCHAR(100) NOT NULL,
                 market_type   VARCHAR(10) NOT NULL,
@@ -208,7 +210,41 @@ def initialize_all_tables():
                 current_val VARCHAR(20),        -- 실시간 지수 값
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP -- 마지막 업데이트 시간
             );
-        """
+        """,
+        "HC_news_raw" : """
+        CREATE TABLE IF NOT EXISTS HC_news_raw (
+            id            BIGINT AUTO_INCREMENT PRIMARY KEY,
+            link          VARCHAR(500) NOT NULL COMMENT '네이버뉴스 링크 (중복체크 기준)',
+            source        VARCHAR(100) COMMENT '언론사명',
+            originallink  VARCHAR(500) COMMENT '언론사 원문 링크',
+            title         VARCHAR(300) NOT NULL,
+            description   TEXT,
+            body          MEDIUMTEXT COMMENT '본문 정제 텍스트',
+            matched_stock VARCHAR(100) COMMENT '어떤 종목 쿼리로 걸렸는지',
+            pub_date      DATETIME,
+            crawled_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            processed     BOOLEAN DEFAULT FALSE COMMENT 'LLM 메타데이터 추출 완료 여부',
+            metadata_attempts  INT DEFAULT 0 COMMENT 'LLM 메타데이터 추출 실패 횟수',
+            article_hash  CHAR(64), 
+            ADD UNIQUE KEY uq_article_hash (article_hash),
+            UNIQUE KEY uq_link (link)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='네이버 뉴스 원본 수집 테이블';""",
+        "HC_news_metadata": """
+        CREATE TABLE IF NOT EXISTS HC_news_metadata (
+            id            BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '메타데이터 고유 ID',
+            news_id       BIGINT NOT NULL COMMENT '원본 기사 ID (HC_news_raw.id 참조, 어떤 기사에서 나온 메타데이터인지)',
+            ticker        VARCHAR(10) COMMENT '시스템이 매칭한 종목코드 (LLM이 뽑은 회사명을 HC_stock_master와 대조해서 채움, 매칭 실패시 NULL)',
+            matched_name  VARCHAR(100) COMMENT 'LLM이 기사에서 추출한 회사명 원본 텍스트 (매칭 실패 시 어떤 이름 때문에 실패했는지 디버깅용으로 남겨둠)',
+            sector        VARCHAR(100) COMMENT 'LLM이 판단한 업종/섹터 (예: 반도체, AI)',
+            event_tags    JSON COMMENT '기사에 해당하는 이벤트 유형 배열 (예: ["실적","목표주가"]) — 실적/배당/M&A 등 정의해둔 카테고리 중 매칭되는 것들',
+            keywords      JSON COMMENT 'LLM이 뽑은 핵심 키워드 배열 (예: ["HBM4","엔비디아"]) — 검색/태그 용도',
+            summary       TEXT COMMENT 'LLM이 생성한 기사 요약문 (2문장 이내)',
+            sentiment     VARCHAR(20) COMMENT '감성 분류 결과: positive(호재) / negative(악재) / neutral(중립)',
+            importance    FLOAT COMMENT '기사 중요도 점수 (0.0~1.0), 챗봇이 여러 기사 중 우선순위 매길 때 사용',
+            created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '이 메타데이터 행이 생성(추출)된 시각',
+            FOREIGN KEY (news_id) REFERENCES HC_news_raw(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='LLM 추출 뉴스 메타데이터';
+       """
     }
 
     # 텍스트 리스트(딕셔너리 키/값)를 돌면서 공통 함수 호출

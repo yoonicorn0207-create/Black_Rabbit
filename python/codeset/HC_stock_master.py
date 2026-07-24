@@ -33,6 +33,10 @@ def setStockMstList():
     """
     print("========= 종목 마스터 동기화 시작 =========")
 
+    # 0. 실행 전 상태 스냅샷
+    before_active_count = len(getStockMstList())
+    print(f"[동기화 전] ACTIVE 종목 수: {before_active_count}건")
+
     # 1. 코스피 / 코스닥 마스터 데이터프레임 가져오기
     try:
         df_kospi = get_market_master_dataframe(market="kospi", verbose=True)
@@ -41,44 +45,37 @@ def setStockMstList():
         print(f"한투 마스터 파일 다운로드 및 파싱 실패: {e}")
         return
 
-
     # 2. [수정 및 고도화] 한국투자증권 코드를 이용해 순수 보통주(기업 주식)만 먼저 필터링
-    # 코스피: 그룹코드가 'ST'(주식)인 것만 남김 (ETF, ETN, 리츠 등 완벽 제거)
     if '그룹코드' in df_kospi.columns:
         df_kospi = df_kospi[df_kospi['그룹코드'] == 'ST']
 
-    # 코스닥: 증권그룹구분코드가 주식 관련('ST': 벤처, 'UU': 일반, 'FS': 외국주식)인 것만 남김
     if '증권그룹구분코드' in df_kosdaq.columns:
         df_kosdaq = df_kosdaq[df_kosdaq['증권그룹구분코드'].isin(['ST', 'UU', 'FS'])]
 
+    print(f"[수집] 코스피 {len(df_kospi)}건 / 코스닥 {len(df_kosdaq)}건 (필터링 후)")
 
     # 3. DB 스키마에 맞게 컬럼명 및 데이터 정제
-    # 코스피 정제
     df_kospi = df_kospi[['단축코드', '한글명', '상장일자']].rename(
         columns={'단축코드': 'ticker', '한글명': 'stock_name', '상장일자': 'listed_date'}
     )
     df_kospi['market_type'] = 'KOSPI'
 
-    # 코스닥 정제
     df_kosdaq = df_kosdaq[['단축코드', '한글종목명', '주식 상장 일자']].rename(
         columns={'단축코드': 'ticker', '한글종목명': 'stock_name', '주식 상장 일자': 'listed_date'}
     )
     df_kosdaq['market_type'] = 'KOSDAQ'
 
-    # 두 시장 데이터 하나로 병합
     today_stocks = pd.concat([df_kospi, df_kosdaq], ignore_index=True)
 
-    # 결측치 처리 및 날짜 포맷팅 (YYYY-MM-DD)
     today_stocks['listed_date'] = pd.to_datetime(today_stocks['listed_date'], errors='coerce').dt.strftime('%Y-%m-%d')
-    # 종목명이 비어있는 데이터 방어 처리
     today_stocks = today_stocks.dropna(subset=['ticker', 'stock_name'])
 
     today_date = datetime.now().strftime('%Y-%m-%d')
-
+    incoming_count = len(today_stocks)
+    print(f"[정제 후] Upsert 대상: {incoming_count}건")
 
     # 4. DB 연결 및 데이터 적재 (Upsert)
     try:
-        # 대량 데이터를 빠르게 넣기 위해 executemany 구조 사용
         upsert_sql = """
             INSERT INTO HC_stock_master (
                 ticker, 
@@ -95,7 +92,6 @@ def setStockMstList():
                 updated_at = NOW();
         """
 
-        # 튜플 리스트로 변환하여 한 번에 실행
         data_tuples = [
             (row['ticker'], row['stock_name'], row['market_type'], row['listed_date'])
             for _, row in today_stocks.iterrows()
@@ -111,6 +107,15 @@ def setStockMstList():
             WHERE status = 'ACTIVE' AND DATE(updated_at) < %s;
         """
         patchSingleRow(delist_sql, "DB 적재 중 에러 발생", (today_date,))
+
+        # 6. 실행 후 상태 스냅샷 + 변화량 요약
+        after_active_count = len(getStockMstList())
+        delta = after_active_count - before_active_count
+
+        print(f"\n========= 종목 마스터 동기화 완료 =========")
+        print(f"[동기화 전] ACTIVE {before_active_count}건")
+        print(f"[동기화 후] ACTIVE {after_active_count}건")
+        print(f"[변화량] {'+' if delta >= 0 else ''}{delta}건 (신규상장 유입분 - 상장폐지 처리분)")
 
     except Exception as e:
         print(f"{e}")
