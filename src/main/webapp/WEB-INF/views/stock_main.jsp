@@ -16,7 +16,7 @@
             <div class="text-2xl font-black italic text-white">BLACK<span class="text-red-500">RABBIT</span></div>
 
             <!-- 코스피/ 코스닥 지수 -->
-            <div class="flex gap-4 text-sm text-gray-400 border-l border-gray-700 pl-4">
+            <div id="market-index-container" class="flex gap-4 text-sm text-gray-400 border-l border-gray-700 pl-4">
                 <p>KOSPI <span class="text-green-400 font-mono">2,650.45</span></p>
                 <p>KOSDAQ <span class="text-red-500 font-mono">850.20</span></p>
             </div>
