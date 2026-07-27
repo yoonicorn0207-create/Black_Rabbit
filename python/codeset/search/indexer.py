@@ -60,7 +60,7 @@ def fetch_indexable_rows():
     sql = """
         SELECT m.id AS metadata_id, m.news_id, m.ticker, m.matched_name, m.sector,
                m.sentiment, m.event_tags, m.keywords, m.summary, m.importance,
-               r.title, r.link, r.pub_date, r.source
+               r.title, r.link, r.originallink, r.pub_date, r.source
         FROM HC_news_metadata m
         JOIN HC_news_raw r ON m.news_id = r.id
         WHERE m.ticker IS NOT NULL
@@ -127,7 +127,7 @@ def build_documents():
                 "title": row["title"],
                 "summary": row["summary"],
                 "source": row["source"],
-                "source_url": row["link"],
+                "source_url": row["originallink"] or row["link"],  # <- 변경: originallink 우선
                 "embedding": embedding,
             }
         }
@@ -175,7 +175,30 @@ def search_sector_recommendation(sector="반도체", hours=24):
     return hits
 
 
+## ======================= 기존 색인 문서의 source_url을 originallink로 일괄 정정 =======================
+def fix_source_url_to_originallink():
+    sql = """
+        SELECT m.id AS metadata_id, r.link, r.originallink
+        FROM HC_news_metadata m
+        JOIN HC_news_raw r ON m.news_id = r.id
+        WHERE m.ticker IS NOT NULL
+    """
+    rows = queryRows(sql, "정정 대상 조회 실패")
+
+    fixed = 0
+    for row in rows:
+        doc_id = str(row["metadata_id"])
+        correct_url = row["originallink"] or row["link"]
+        try:
+            os_client.update(index=INDEX_NAME, id=doc_id, body={"doc": {"source_url": correct_url}})
+            fixed += 1
+        except Exception as e:
+            print(f"업데이트 실패 ({doc_id}): {e}")
+
+    print(f"source_url 정정 완료: {fixed}건")
+
 
 if __name__ == "__main__":
+    # fix_source_url_to_originallink()  # 기존 데이터 정정 먼저 1회 실행
     run_indexing()
     search_sector_recommendation(sector="반도체")
