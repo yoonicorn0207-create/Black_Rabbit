@@ -91,19 +91,31 @@ def build_answer_prompt(sector: str, grouped: dict, chat_summary: str) -> str:
     context_lines = []
     for stock_name, articles in grouped.items():
         for art in articles[:2]:  # 종목당 최대 2개 기사만 근거로
+            url = art.get("source_url") or ""
+            if not url.strip():
+                continue  # URL 없는 근거는 컨텍스트에서 제외 (환각 방지)
             context_lines.append(
-                f"- [{stock_name}] {art['summary']} (출처: {art['source']}, {art['source_url']})"
+                f"- [{stock_name}] {art['summary']} (출처: {art['source']} | {url})"
             )
 
     context_text = "\n".join(context_lines)
 
     prompt = f"""너는 한국 주식 뉴스 기반 섹터 추천 어시스턴트다.
-이전 대화 요약: {chat_summary or '없음'}
-
-다음은 '{sector}' 섹터의 최근 24시간 호재성 뉴스 근거자료다:
-{context_text}
-
-위 근거를 바탕으로, 어떤 종목들이 호재 요인을 가지고 있는지 요약해서 설명하고, 각 종목별로 근거 기사 출처(URL)를 함께 제시해라. 한국어로, 간결하게 작성해라."""
+        이전 대화 요약: {chat_summary or '없음'}
+    
+        다음은 '{sector}' 섹터의 최근 24시간 호재성 뉴스 근거자료다:
+        {context_text}
+    
+        위 근거를 바탕으로 어떤 종목들이 호재 요인을 가지고 있는지 한국어로 간결하게 설명해라.
+    
+        출력 형식 규칙 (반드시 지켜라):
+        - 각 종목 설명 뒤에는 반드시 줄바꿈을 넣어라.
+        - 출처는 반드시 마크다운 링크 문법 [출처](URL) 형식으로만 표기해라. URL을 텍스트로 그대로 노출하지 마라.
+        - 제공되지 않은 URL은 절대 만들어내지 마라.
+    
+        예시:
+        삼성전자는 메모리 가격 상승 기대감으로 강세가 예상됩니다. [출처](https://example.com/news/1)
+    """
     return prompt
 
 
