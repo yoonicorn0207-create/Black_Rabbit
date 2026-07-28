@@ -30,6 +30,25 @@ public class KISServiceImpl implements KISService {
   private final String contentType_utf8 = "application/json; charset=utf-8";
 
 
+  // ▼ 추가: KIS 초당 호출 제한 방지용
+  private static final long MIN_CALL_INTERVAL_MS = 600; // 초당 약 1.6건으로 제한
+  private long lastKisCallTime = 0;
+
+
+  private synchronized void throttleKisCall() {
+    long now = System.currentTimeMillis();
+    long elapsed = now - lastKisCallTime;
+    if (elapsed < MIN_CALL_INTERVAL_MS) {
+      try {
+        Thread.sleep(MIN_CALL_INTERVAL_MS - elapsed);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+    }
+    lastKisCallTime = System.currentTimeMillis();
+  }
+
+
   @Override
   public ResultDTO getKisToken(KISTokenDTO kisTokenDTO) {
     // 한투 api 호출용 토큰 발급받기
@@ -73,6 +92,7 @@ public class KISServiceImpl implements KISService {
           .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
           .build();
 
+      throttleKisCall();// 초당 api 호출 에러 방지를 위해 삽입
       HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
       System.out.println(response);
@@ -190,6 +210,51 @@ public class KISServiceImpl implements KISService {
     String appSecret = (String) keys.get("appsecret");
     String token = (String) keys.get("authorization");
 
+    String availableCash = "0";
+
+    // 1. 실시간 매수가능 금액 조회 API 호출 (VTTC8908R)
+    try {
+      String psblApiPath = "/uapi/domestic-stock/v1/trading/inquire-psbl-order";
+      // 명세에 따른 Query Parameter 구성 (종목코드, 주문단가 공란 시 매수금액 위주로 조회 가능, 시장가 01 등 활용)
+      String psblQueryStr = "?CANO=" + cano +
+          "&ACNT_PRDT_CD=01" +
+          "&PDNO=" +
+          "&ORD_UNPR=" +
+          "&ORD_DVSN=01" +
+          "&CMA_EVLU_AMT_ICLD_YN=N" +
+          "&OVRS_ICLD_YN=N";
+
+      HttpRequest psblRequest = HttpRequest.newBuilder()
+          .uri(URI.create(url + psblApiPath + psblQueryStr))
+          .header("Content-Type", contentType)
+          .header("authorization", "Bearer " + token)
+          .header("appkey", appKey)
+          .header("appsecret", appSecret)
+          .header("tr_id", "VTTC8908R") // [모의투자] 매수 가능 조회
+          .header("tr_cont", "N")
+          .GET()
+          .build();
+
+
+      throttleKisCall();// 초당 api 호출 에러 방지를 위해 삽입
+      HttpResponse<String> psblResponse = httpClient.send(psblRequest, HttpResponse.BodyHandlers.ofString());
+
+      if (psblResponse.statusCode() == 200) {
+        Map<String, Object> psblBody = objectMapper.readValue(psblResponse.body(), Map.class);
+        if ("0".equals(psblBody.get("rt_cd"))) {
+          Map<String, String> output = (Map<String, String>) psblBody.get("output");
+          if (output != null) {
+            // 매수가능금액(ord_psbl_cash) 또는 주문가능현금 관련 필드 매핑
+            availableCash = output.get("ord_psbl_cash");
+          }
+        }
+      }
+    } catch (Exception e) {
+      e.printStackTrace();
+      // 매수가능 조회 실패 시 로깅만 하고 잔고 조회는 계속 진행할 수 있습니다.
+    }
+
+    // 2. 기존 보유 종목 리스트 및 잔고 총괄 조회 API 호출 (VTTC8434R)
     try{
       String apiPath = "/uapi/domestic-stock/v1/trading/inquire-balance";
       String queryStr = "&ACNT_PRDT_CD=01&AFHR_FLPR_YN=N&OFL_YN=N&INQR_DVSN=01&UNPR_DVSN=01&FUND_STTL_ICLD_YN=N&FNCG_AMT_AUTO_RDPT_YN=N&PRCS_DVSN=00&CTX_AREA_FK100=&CTX_AREA_NK100=";
@@ -205,6 +270,7 @@ public class KISServiceImpl implements KISService {
           .GET()
           .build();
 
+      throttleKisCall();// 초당 api 호출 에러 방지를 위해 삽입
       HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
       if (response.statusCode() == 200) {
@@ -218,23 +284,21 @@ public class KISServiceImpl implements KISService {
           if (output2List != null && !output2List.isEmpty()) {
             Map<String, String> firstItem = output2List.get(0);
 
-            // 매수 가능 예수금: nxdy_excc_amt
-            // 예수금 총액: dnca_tot_amt
-            // 예수금+ 평가액: tot_evlu_amt
-            // 평가 손익 합계: evlu_pfls_smtl_amt
-            data.put("balance", firstItem.get("nxdy_excc_amt"));
-            data.put("holdings", resultBody.get("output1"));
+            // 1번 API에서 조회한 실시간 매수가능금액(availableCash)을 우선 매핑하고,
+            // 필요에 따라 기존 계좌 총액 데이터도 함께 담아줍니다.
+            data.put("balance", availableCash);                  // 화면 헤더 AVAILABLE BALANCE용 실시간 매수가능금액
+            data.put("dncaTotAmt", firstItem.get("dnca_tot_amt")); // 예수금 총액
+            data.put("holdings", resultBody.get("output1"));       // 보유 종목 리스트
 
           }
 
           return new ResultDTO(true, "조회 성공", data);
-        }else{
+        } else {
           return new ResultDTO(false, "조회 실패", resultBody.get("msg1"));
         }
       } else {
         return new ResultDTO(false, "API 조회 실패: " + response.body(), null);
       }
-
 
     }catch(Exception e){
       e.printStackTrace();
@@ -284,6 +348,7 @@ public class KISServiceImpl implements KISService {
           .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
           .build();
 
+      throttleKisCall();// 초당 api 호출 에러 방지를 위해 삽입
       HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
       // 응답 확인

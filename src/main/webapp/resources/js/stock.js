@@ -342,7 +342,8 @@ async function renderHoldings(opts = {}) {
 
     // 예수금 화면에 그리기
     const balance = Number(res?.data?.balance);
-    document.getElementById('available-balance').innerText = `₩ ${balance.toLocaleString()}`;
+    document.getElementById('available-balance').innerText =
+      `₩ ${Number.isFinite(balance) ? balance.toLocaleString() : '0'}`;
 
     const holdings = res?.data?.holdings;
     // 보유종목 화면에 그리기

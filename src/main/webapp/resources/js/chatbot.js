@@ -262,10 +262,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ---------------- 출처 url에 하이퍼링크 삽입 ----------------
   function linkify(text) {
-    const escaped = escapeHtml(text);          // 1. 특수문자 이스케이프 (안전 + 정확성)
-    const withBreaks = escaped.replace(/\n/g, '<br>');  // 2. 줄바꿈을 <br>로 명시 변환
-    const urlRegex = /(https?:\/\/[^\s)]+)/g;
-    return withBreaks.replace(urlRegex, url => `<a href="${url}" target="_blank" class="underline text-blue-600">${url}</a>`);
+    const escaped = escapeHtml(text);
+    const withBreaks = escaped.replace(/\n/g, '<br>');
+    // [텍스트](URL) 마크다운 링크만 파싱 — URL이 괄호 안에 명확히 갇혀 있어 뒤 텍스트 오염 불가능
+    const mdLinkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
+    return withBreaks.replace(mdLinkRegex, (_, label, url) =>
+      `<a href="${url}" target="_blank" class="underline text-blue-600">${label}</a>`
+    );
   }
 
   // ---------------- 세션 구분용 함수 ----------------
