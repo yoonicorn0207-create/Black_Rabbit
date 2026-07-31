@@ -69,6 +69,7 @@
             <button onclick="updatePeriod('week', this)" class="period-btn px-3 py-1 rounded text-sm">1주</button>
             <button onclick="updatePeriod('month', this)" class="period-btn px-3 py-1 rounded text-sm">1월</button>
         </div>
+
         <!-- 차트 -->
         <div id="main-chart"></div>
     </section>
